@@ -1,0 +1,81 @@
+openapi: 3.0.0
+info:
+  title: PFP Recalculation API
+  version: 1.1.0
+  description: |
+    Адаптивный API для пересчета финансового плана (ПФП).
+    Поддерживает как массовое обновление целей, так и быстрое редактирование одной цели.
+
+servers:
+  - url: /api
+paths:
+  /client/{id}/recalculate:
+    post:
+      summary: Пересчитать ПФП (Recalculate)
+      description: |
+        Выполняет полный пересчет плана с учетом изменений.
+        
+        **Два способа вызова:**
+        1. **Массовый (Bulk):** Передайте массив `goals`.
+        2. **Точечный (Single):** Передайте `goal_id` и параметры цели прямо в корне JSON.
+        
+        Оба способа можно комбинировать с обновлением данных клиента в объекте `client`.
+
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID Клиента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                goal_id:
+                  type: integer
+                  description: "(Точечный режим) ID цели, которую хотим изменить."
+                client:
+                  type: object
+                  description: "Обновление параметров клиента (avg_monthly_income, birth_date и др.)."
+                goals:
+                  type: array
+                  description: "(Массовый режим) Список целей для обновления."
+                  items:
+                    $ref: '#/components/schemas/GoalInput'
+                # Поля ниже используются в Точечном режиме (когда указан goal_id)
+                target_amount: { type: number }
+                desired_monthly_income: { type: number, description: "Синоним target_amount для Пенсии." }
+                initial_capital: { type: number }
+                monthly_replenishment: { type: number }
+                term_months: { type: integer }
+                risk_profile: { type: string, enum: [CONSERVATIVE, BALANCED, AGGRESSIVE] }
+                ipk_current: { type: number, description: "Текущий ИПК (для Пенсии)." }
+      responses:
+        '200':
+          description: Успешный расчет.
+          content:
+            application/json:
+              schema:
+                $ref: './openapi/pfp-api-v1.2.yaml#/components/schemas/CalculationResponse'
+
+components:
+  schemas:
+    GoalInput:
+      type: object
+      properties:
+        id: { type: integer, description: "Обязателен для обновления существующей цели." }
+        goal_type_id: { type: integer }
+        name: { type: string }
+        target_amount: { type: number }
+        desired_monthly_income: { type: number, description: "Используется для Пенсии (ID=1)." }
+        initial_capital: { type: number }
+        monthly_replenishment: { type: number }
+        term_months: { type: integer }
+        risk_profile: { type: string, enum: [CONSERVATIVE, BALANCED, AGGRESSIVE] }
+        inflation_rate: { type: number }
+        ipk_current: { type: number, description: "Для Пенсии." }
+        ops_capital: { type: number, description: "Для Пенсии / ПДС." }

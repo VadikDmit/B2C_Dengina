@@ -1,0 +1,291 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --primary: #FFC750;
+    --primary-hover: #e5b348;
+    --secondary: #00A8B1;
+    --accent-blue: #3B82F6;
+    --accent-green: #10B981;
+    --bg-color: #F8F9FA;
+    --bg-gradient: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --card-bg-hover: rgba(255, 255, 255, 0.85);
+    --text-main: #1F2937;
+    --text-muted: #6B7280;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --font-main: 'Inter', sans-serif;
+    --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+    --shadow-soft: 0 4px 16px 0 rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-main);
+    background: var(--bg-gradient);
+    color: var(--text-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+.premium-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    font-size: 16px;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    font-size: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.hint {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="tel"],
+input[type="number"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px 20px;
+    color: var(--text-main);
+    font-size: 16px;
+    outline: none;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+}
+
+input:focus {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 4px rgba(255, 199, 80, 0.1);
+}
+
+.step-title {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+@media (max-width: 640px) {
+    .step-title {
+        font-size: 32px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Custom Slider Styles */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    outline: none;
+    margin: 15px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 199, 80, 0.4);
+    transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+/* --- STRICT USER PROVIDED CSS START --- */
+
+.goalsContainer {
+    display: grid;
+    gap: 20px;
+    width: 100%;
+    padding: 20px;
+    margin: 0 auto;
+    justify-content: center;
+}
+
+/* ДЕСКТОП 1440px+ - 4 в ряд */
+@media (min-width: 1400px) {
+    .goalsContainer {
+        grid-template-columns: repeat(4, 280px);
+        padding: 20px 40px;
+        margin: 0 auto;
+    }
+}
+
+/* Планшет-Ноутбук 1100px - 1399px - 3 в ряд */
+@media (min-width: 1100px) and (max-width: 1399px) {
+    .goalsContainer {
+        grid-template-columns: repeat(3, 280px);
+    }
+}
+
+/* Планшет 768px - 1099px - 2 в ряд */
+@media (min-width: 768px) and (max-width: 1099px) {
+    .goalsContainer {
+        grid-template-columns: repeat(2, 280px);
+    }
+}
+
+/* Мобильный */
+@media (max-width: 767px) {
+    .goalsContainer {
+        grid-template-columns: 280px;
+        padding: 20px;
+    }
+}
+
+/* КАРТОЧКА - НОВЫЕ РАЗМЕРЫ И СКОС */
+.goalCard {
+    width: 280px;
+    height: 160px;
+    display: flex;
+    overflow: hidden;
+    border-radius: 20px;
+    cursor: pointer;
+    background-color: #FFC845;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.goalCard:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.goalCard__title {
+    width: 60%;
+    height: 100%;
+    background: #FFC845;
+    padding: 12px 15px 12px 20px;
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    z-index: 2;
+    font-size: 16px;
+    font-weight: 800;
+    color: #1F2937;
+    line-height: 1.1;
+    /* ДИАГОНАЛЬНЫЙ СКОС: 100% сверху, 85% снизу для изящного угла */
+    clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+}
+
+.goalCard__image {
+    width: 100%;
+    /* Изображение на всю ширину, чтобы не было дыр */
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1;
+    /* Слой под текстом */
+}
+
+/* --- STRICT USER PROVIDED CSS END --- */
