@@ -11,11 +11,11 @@ import PastPage from './components/PastPage'
 import type { Client } from './types/client'
 import { clientApi } from './api/clientApi'
 
-type Page = 'login' | 'register' | 'past' | 'present' | 'future' | 'cjm' | 'result'
+type Page = 'loading' | 'login' | 'register' | 'past' | 'present' | 'future' | 'cjm' | 'result'
 
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>(() => {
-        return localStorage.getItem('token') ? 'present' : 'login';
+        return localStorage.getItem('token') ? 'loading' : 'login';
     });
     const [calculationResult, setCalculationResult] = useState<any>(null);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -96,21 +96,25 @@ function App() {
     const handleCalculationComplete = async (result: any) => {
         console.log('Calculation Complete. Result:', result);
 
-        const clientId = result?.client_id || result?.id || result?.summary?.client_id;
-
-        if (clientId) {
-            try {
-                const fullClient = await clientApi.getMyPlan();
-                setSelectedClient(fullClient);
-            } catch (err) {
-                console.error('Failed to fetch client after calculation:', err);
+        try {
+            // Force fetch full plan from server to ensure App state is perfectly in sync
+            const fullClient = await clientApi.getMyPlan();
+            setClientData(fullClient);
+            setSelectedClient(fullClient);
+            
+            if (fullClient.goals_summary) {
+                setCalculationResult(fullClient.goals_summary);
+            } else {
+                setCalculationResult(result);
             }
+        } catch (err) {
+            console.error('Failed to sync data after calculation:', err);
+            // Fallback to what we have
             setCalculationResult(result);
-        } else if (result?.client) {
-            setSelectedClient(result.client);
-            setCalculationResult(result);
-        } else {
-            setCalculationResult(result);
+            if (result?.client) {
+                setClientData(result.client);
+                setSelectedClient(result.client);
+            }
         }
 
         setCurrentPage('result');
@@ -149,6 +153,17 @@ function App() {
     }, []);
 
     // Auth pages (no header)
+    if (currentPage === 'loading') {
+        return (
+            <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa' }}>
+                <div style={{ padding: '24px', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #f3f4f6', borderTopColor: 'var(--primary)', borderRadius: '50%' }} />
+                    <div style={{ fontWeight: '600', color: '#64748b' }}>Загрузка данных...</div>
+                </div>
+            </div>
+        );
+    }
+
     if (currentPage === 'login') {
         return (
             <div className="app-container">

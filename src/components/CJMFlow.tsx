@@ -60,7 +60,7 @@ const CJMFlow: React.FC<CJMFlowProps> = ({ onComplete, onBack, isNewClient }) =>
         targetAmount: 1500000,
         termMonths: 60,
         initialCapital: 100000,
-        monthlyReplenishment: 50000,
+        monthlyReplenishment: 5000,
         avgMonthlyIncome: 150000,
         riskProfile: 'BALANCED',
         lifeInsuranceLimit: 0,
@@ -94,34 +94,38 @@ const CJMFlow: React.FC<CJMFlowProps> = ({ onComplete, onBack, isNewClient }) =>
 
             // Life Insurance (ID 5)
             if (data.lifeInsuranceLimit && data.lifeInsuranceLimit > 0) {
+                const targetCoverage = data.lifeInsuranceLimit;
+                const termMonths = 180; // 15 years default
+
                 goalsToProcess.push({
                     goal_type_id: 5,
                     name: 'Защита Жизни',
-                    target_amount: data.lifeInsuranceLimit,
-                    // Default values for Life Insurance request
-                    term_months: 180, // 15 years default
+                    target_amount: targetCoverage,
+                    term_months: termMonths,
                     risk_profile: 'CONSERVATIVE',
-                    inflation_rate: 0 // Usually 0 for insurance sum? Or 10? API default is likely handled.
+                    inflation_rate: 0,
+                    // Backend calculation fallback
+                    initial_capital: targetCoverage / (termMonths / 12),
+                    monthly_replenishment: targetCoverage / termMonths
                 });
             }
 
             const goalsPayload = goalsToProcess.map(g => {
                 // Определяем типы целей сначала
+                const isLifeInsurance = g.goal_type_id === 5;
                 const isRent = g.goal_type_id === 8;
                 const isFinReserve = g.goal_type_id === 7;
                 const isInvestment = g.goal_type_id === 3;
                 const isPension = g.goal_type_id === 1; // PENSION
                 const isPassiveIncome = g.goal_type_id === 2; // PASSIVE_INCOME
 
-                // Only for FIN_RESERVE (id=7) and RENT (id=8), use initial_capital from goal itself
-                // For other goals, бэк сам распределит из активов - не передаем initial_capital
-                const initialCapital = (isFinReserve || isRent)
+                // Only for Insurance (5), Rent (8), or FinReserve (7), use initial_capital from goal itself
+                const initialCapital = (isFinReserve || isRent || isLifeInsurance)
                     ? (g.initial_capital || 0)
-                    : undefined; // Не передаем для остальных целей - бэк сам распределит
+                    : undefined;
 
-                // monthly_replenishment передаем только для Investment (id=3) и FIN_RESERVE (id=7)
-                // Для остальных целей (PASSIVE_INCOME, PENSION, RENT и др.) не передаем
-                const monthlyReplenishment = (isFinReserve || isInvestment)
+                // monthly_replenishment передаем для Investment (3), FinReserve (7) и Insurance (5)
+                const monthlyReplenishment = (isFinReserve || isInvestment || isLifeInsurance)
                     ? (g.monthly_replenishment !== undefined ? g.monthly_replenishment : (data.monthlyReplenishment || undefined))
                     : undefined;
 
@@ -236,7 +240,7 @@ const CJMFlow: React.FC<CJMFlowProps> = ({ onComplete, onBack, isNewClient }) =>
                 <VictoriaOnboarding
                     data={data}
                     setData={setData}
-                    onComplete={handleCalculate}
+                    onComplete={() => setStep(3)}
                 />
             </div>
         );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Mail, Lock, User, ArrowLeft, KeyRound, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clientApi } from '../api/clientApi';
 
@@ -8,13 +8,12 @@ interface RegisterPageProps {
     onSwitchToLogin: () => void;
 }
 
-type Step = 'form' | 'verify' | 'success';
+type Step = 'form' | 'success';
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitchToLogin }) => {
     const [step, setStep] = useState<Step>('form');
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
-    const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,25 +21,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
-        try {
-            await clientApi.registerClient(email, name);
-            setStep('verify');
-        } catch (err: any) {
-            const msg = err.response?.data?.message || err.response?.data?.error || 'Ошибка при регистрации';
-            if (err.response?.status === 409) {
-                setError('Пользователь с таким email уже зарегистрирован');
-            } else {
-                setError(msg);
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    const handleVerify = async (e: React.FormEvent) => {
-        e.preventDefault();
         if (password !== passwordConfirm) {
             setError('Пароли не совпадают');
             return;
@@ -49,10 +30,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
             setError('Пароль должен содержать минимум 6 символов');
             return;
         }
+
         setLoading(true);
         setError('');
         try {
-            const response = await clientApi.verifyCode(email, code, password);
+            const response = await clientApi.registerFast({
+                email,
+                name,
+                password
+            });
+
             if (response.token) {
                 localStorage.setItem('token', response.token);
                 if (response.user) {
@@ -62,8 +49,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                 setTimeout(() => onRegisterSuccess(), 1500);
             }
         } catch (err: any) {
-            const msg = err.response?.data?.message || err.response?.data?.error || 'Неверный код подтверждения';
-            setError(msg);
+            const msg = err.response?.data?.message || err.response?.data?.error || 'Ошибка при регистрации';
+            if (err.response?.status === 409) {
+                setError('Пользователь с таким email уже зарегистрирован');
+            } else {
+                setError(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -100,12 +91,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                     </div>
                     <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
                         {step === 'form' && 'Регистрация'}
-                        {step === 'verify' && 'Подтверждение email'}
                         {step === 'success' && 'Готово!'}
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
                         {step === 'form' && 'Создайте аккаунт для личного финансового плана'}
-                        {step === 'verify' && `Код отправлен на ${email}`}
                         {step === 'success' && 'Аккаунт успешно создан'}
                     </p>
                 </div>
@@ -143,13 +132,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                                         onChange={(e) => setName(e.target.value)}
                                         style={{ paddingLeft: '40px' }}
                                         placeholder="Иван Иванов"
-                                        required
                                     />
                                 </div>
                             </div>
 
                             <div className="input-group">
-                                <label className="label">Электронная почта</label>
+                                <label className="label">Электронная почта *</label>
                                 <div style={{ position: 'relative' }}>
                                     <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                     <input
@@ -163,38 +151,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                                 </div>
                             </div>
 
-                            <button type="submit" className="btn-primary" style={{ marginTop: '10px' }} disabled={loading}>
-                                {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Отправка...</> : 'Получить код подтверждения'}
-                            </button>
-                        </motion.form>
-                    )}
-
-                    {step === 'verify' && (
-                        <motion.form
-                            key="verify"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            onSubmit={handleVerify}
-                        >
                             <div className="input-group">
-                                <label className="label">Код подтверждения (6 цифр)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <KeyRound style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
-                                    <input
-                                        type="text"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        style={{ paddingLeft: '40px', letterSpacing: '4px', fontSize: '18px', textAlign: 'center' }}
-                                        placeholder="000000"
-                                        maxLength={6}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="label">Придумайте пароль</label>
+                                <label className="label">Придумайте пароль *</label>
                                 <div style={{ position: 'relative' }}>
                                     <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                     <input
@@ -210,7 +168,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                             </div>
 
                             <div className="input-group">
-                                <label className="label">Подтвердите пароль</label>
+                                <label className="label">Подтвердите пароль *</label>
                                 <div style={{ position: 'relative' }}>
                                     <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                     <input
@@ -225,14 +183,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                                <button type="button" className="btn-secondary" onClick={() => { setStep('form'); setError(''); }}>
-                                    <ArrowLeft size={16} /> Назад
-                                </button>
-                                <button type="submit" className="btn-primary" style={{ flex: 1 }} disabled={loading || code.length !== 6}>
-                                    {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Проверка...</> : 'Создать аккаунт'}
-                                </button>
-                            </div>
+                            <button type="submit" className="btn-primary" style={{ marginTop: '10px' }} disabled={loading}>
+                                {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Создание аккаунта...</> : 'Зарегистрироваться'}
+                            </button>
                         </motion.form>
                     )}
 
@@ -268,3 +221,4 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
 };
 
 export default RegisterPage;
+

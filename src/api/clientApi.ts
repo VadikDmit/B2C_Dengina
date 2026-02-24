@@ -28,20 +28,12 @@ export { PROJECT_KEY };
 
 export const clientApi = {
     // --- AUTH ---
-    registerClient: async (email: string, name: string): Promise<any> => {
-        const response = await api.post('/auth/register-client', {
-            email,
-            name,
+    registerFast: async (payload: { email: string, password: string, name?: string }): Promise<any> => {
+        const response = await api.post('/auth/register-fast', {
+            email: payload.email,
+            password: payload.password,
+            name: payload.name,
             project_key: PROJECT_KEY,
-        });
-        return response.data;
-    },
-
-    verifyCode: async (email: string, code: string, password: string): Promise<any> => {
-        const response = await api.post('/auth/verify-code', {
-            email,
-            code,
-            password,
         });
         return response.data;
     },

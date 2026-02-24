@@ -148,6 +148,16 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
         return { initial: initialSum, monthly: monthlySum };
     }, [calcGoals, goals]);
 
+    const insuranceData = useMemo(() => {
+        const goal = goals.find((g: any) => g.goal_type_id === 5);
+        const limit = goal?.target_amount || goal?.insurance_limit || 3000000;
+        return {
+            slp: limit,
+            ns: limit,
+            dtp: limit * 2
+        };
+    }, [goals]);
+
     const formatMoney = (amount: number) =>
         new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount);
 
@@ -226,13 +236,13 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
 
             {/* Yield Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="premium-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'linear-gradient(to bottom right, #fff, #fef2f2)' }}>
+                <div className="premium-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'linear-gradient(to bottom right, #fff, #f0fdf4)' }}>
                     <div>
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>Историческая доходность</div>
-                        <div style={{ fontSize: '28px', fontWeight: '900', color: '#ef4444' }}>−3.2%</div>
+                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>Историческая доходность (12м)</div>
+                        <div style={{ fontSize: '28px', fontWeight: '900', color: '#10b981' }}>+17.0%</div>
                     </div>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <TrendingUp size={24} color="#ef4444" style={{ transform: 'rotate(180deg)' }} />
+                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUp size={24} color="#10b981" />
                     </div>
                 </div>
                 <div className="premium-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'linear-gradient(to bottom right, #fff, #f0fdf4)' }}>
@@ -278,15 +288,15 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
                                 <span style={{ color: '#666', fontWeight: '600' }}>СЛП</span>
-                                <strong>{formatMoney(3000000)}</strong>
+                                <strong>{formatMoney(insuranceData.slp)}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
                                 <span style={{ color: '#666', fontWeight: '600' }}>НС</span>
-                                <strong>{formatMoney(3000000)}</strong>
+                                <strong>{formatMoney(insuranceData.ns)}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
                                 <span style={{ color: '#666', fontWeight: '600' }}>ДТП</span>
-                                <strong>{formatMoney(6000000)}</strong>
+                                <strong>{formatMoney(insuranceData.dtp)}</strong>
                             </div>
                         </div>
                     </div>

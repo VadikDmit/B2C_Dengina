@@ -149,19 +149,19 @@ const StepRiskProfile: React.FC<StepRiskProfileProps> = ({ data, setData, onComp
         const newAnswers = { ...answers, [questionId]: points };
         setAnswers(newAnswers);
 
-        // Auto-advance to next question after a short delay
+        // Auto-advance or finish
         setTimeout(() => {
             if (currentQ < questions.length - 1) {
                 setCurrentQ(currentQ + 1);
             } else {
-                // All answered - show result
-                setShowResult(true);
+                // All answered - Skip result screen and go straight to calculation
                 const result = calculateProfile(newAnswers);
                 setData({
                     ...data,
                     riskProfile: result.profile,
                     riskProfileAnswers: newAnswers,
                 });
+                onComplete();
             }
         }, 300);
     };
