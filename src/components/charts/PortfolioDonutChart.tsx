@@ -19,8 +19,9 @@ const PortfolioDonutChart: React.FC<PortfolioDonutChartProps> = ({ items, total,
     return (
         <div className="premium-card" style={{
             flex: 1,
-            minWidth: '340px',
-            padding: '28px',
+            minWidth: 0,
+            width: '100%',
+            padding: '20px',
             display: 'flex',
             flexDirection: 'column',
             background: 'linear-gradient(145deg, #ffffff 0%, #f9fafb 100%)',
@@ -41,13 +42,14 @@ const PortfolioDonutChart: React.FC<PortfolioDonutChartProps> = ({ items, total,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: '8px',
                         fontSize: '14px',
                         padding: '10px 0',
                         borderBottom: '1px solid rgba(241, 245, 249, 0.8)'
                     }}>
-                        <span style={{ color: '#64748b', fontWeight: '600' }}>{item.name}</span>
-                        <span style={{ color: '#0f172a', fontWeight: '800', letterSpacing: '-0.2px' }}>
-                            {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)} ₽
+                        <span style={{ color: '#64748b', fontWeight: '600', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                        <span style={{ color: '#0f172a', fontWeight: '800', letterSpacing: '-0.2px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)} ₽
                         </span>
                     </div>
                 )) : (

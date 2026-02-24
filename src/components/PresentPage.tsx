@@ -223,13 +223,13 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
             </div>
 
             {/* Portfolio Charts */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px' }}>
                 <PortfolioDonutChart items={initialInstruments} total={totalInitial} title="Мои активы" />
                 <PortfolioBarChart items={monthlyInstruments} total={totalMonthly} title="Портфель пополнения" />
             </div>
 
             {/* Yield Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '12px' }}>
                 <div className="premium-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'linear-gradient(to bottom right, #fff, #f0fdf4)' }}>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>Историческая доходность (12м)</div>
@@ -253,31 +253,31 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
             {/* Protection Block */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>Защита</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div className="premium-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1px solid #bbf7d0', padding: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(34,197,94,0.3)' }}>
-                                <PiggyBank size={22} color="#fff" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '16px' }}>
+                    <div className="premium-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1px solid #bbf7d0', padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '12px', background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(34,197,94,0.3)' }}>
+                                <PiggyBank size={20} color="#fff" />
                             </div>
-                            <div style={{ fontWeight: '800', fontSize: '18px' }}>Финансовый резерв</div>
+                            <div style={{ fontWeight: '800', fontSize: '15px', lineHeight: '1.2' }}>Финансовый резерв</div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '12px 16px', borderRadius: '12px' }}>
-                                <span style={{ color: '#666', fontWeight: '600' }}>Капитал</span>
-                                <strong style={{ fontSize: '17px' }}>{formatMoney(reserveData.initial)}</strong>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.6)', padding: '10px 12px', borderRadius: '10px' }}>
+                                <span style={{ color: '#666', fontWeight: '600', fontSize: '13px' }}>Капитал</span>
+                                <strong style={{ fontSize: '14px' }}>{formatMoney(reserveData.initial)}</strong>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '12px 16px', borderRadius: '12px' }}>
-                                <span style={{ color: '#666', fontWeight: '600' }}>Пополнение</span>
-                                <strong style={{ fontSize: '17px' }}>{formatMoney(reserveData.monthly)}<span style={{ fontSize: '12px', color: '#888' }}>/мес</span></strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', background: 'rgba(255,255,255,0.6)', padding: '10px 12px', borderRadius: '10px' }}>
+                                <span style={{ color: '#666', fontWeight: '600', fontSize: '13px' }}>Пополнение</span>
+                                <strong style={{ fontSize: '14px' }}>{formatMoney(reserveData.monthly)}<span style={{ fontSize: '11px', color: '#888' }}>/мес</span></strong>
                             </div>
                         </div>
                     </div>
-                    <div className="premium-card" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', padding: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59,130,246,0.3)' }}>
-                                <Shield size={22} color="#fff" />
+                    <div className="premium-card" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59,130,246,0.3)' }}>
+                                <Shield size={20} color="#fff" />
                             </div>
-                            <div style={{ fontWeight: '800', fontSize: '18px' }}>Защита жизни</div>
+                            <div style={{ fontWeight: '800', fontSize: '15px', lineHeight: '1.2' }}>Защита жизни</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
@@ -303,7 +303,7 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                     <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>Текущие цели</h3>
                     <button onClick={() => onViewPlan(clientData!, goalsSummary)} style={{ background: 'none', border: 'none', color: '#D946EF', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>Смотреть всё</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 130px), 1fr))', gap: '12px' }}>
                     {goals.filter((g: any) => g.goal_type_id !== 5 && g.goal_type_id !== 7).slice(0, 3).map((goal: any, idx: number) => (
                         <motion.div
                             key={goal.id || idx}
