@@ -262,13 +262,13 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                             <div style={{ fontWeight: '800', fontSize: '15px', lineHeight: '1.2' }}>Финансовый резерв</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.6)', padding: '10px 12px', borderRadius: '10px' }}>
-                                <span style={{ color: '#666', fontWeight: '600', fontSize: '13px' }}>Капитал</span>
-                                <strong style={{ fontSize: '14px' }}>{formatMoney(reserveData.initial)}</strong>
+                            <div style={{ background: 'rgba(255,255,255,0.65)', padding: '10px 12px', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Капитал</div>
+                                <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap' }}>{formatMoney(reserveData.initial)}</div>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px', background: 'rgba(255,255,255,0.6)', padding: '10px 12px', borderRadius: '10px' }}>
-                                <span style={{ color: '#666', fontWeight: '600', fontSize: '13px' }}>Пополнение</span>
-                                <strong style={{ fontSize: '14px' }}>{formatMoney(reserveData.monthly)}<span style={{ fontSize: '11px', color: '#888' }}>/мес</span></strong>
+                            <div style={{ background: 'rgba(255,255,255,0.65)', padding: '10px 12px', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>Пополнение</div>
+                                <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap' }}>{formatMoney(reserveData.monthly)}<span style={{ fontSize: '11px', color: '#888', marginLeft: '2px' }}>/мес</span></div>
                             </div>
                         </div>
                     </div>
@@ -279,19 +279,13 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                             </div>
                             <div style={{ fontWeight: '800', fontSize: '15px', lineHeight: '1.2' }}>Защита жизни</div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
-                                <span style={{ color: '#666', fontWeight: '600' }}>СЛП</span>
-                                <strong>{formatMoney(insuranceData.slp)}</strong>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
-                                <span style={{ color: '#666', fontWeight: '600' }}>НС</span>
-                                <strong>{formatMoney(insuranceData.ns)}</strong>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.6)', padding: '10px 16px', borderRadius: '10px' }}>
-                                <span style={{ color: '#666', fontWeight: '600' }}>ДТП</span>
-                                <strong>{formatMoney(insuranceData.dtp)}</strong>
-                            </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {([['СЛП', insuranceData.slp], ['НС', insuranceData.ns], ['ДТП', insuranceData.dtp]] as [string, number][]).map(([label, val]) => (
+                                <div key={label} style={{ background: 'rgba(255,255,255,0.65)', padding: '10px 12px', borderRadius: '10px' }}>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '3px' }}>{label}</div>
+                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap' }}>{formatMoney(val)}</div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -303,43 +297,78 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                     <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>Текущие цели</h3>
                     <button onClick={() => onViewPlan(clientData!, goalsSummary)} style={{ background: 'none', border: 'none', color: '#D946EF', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>Смотреть всё</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 130px), 1fr))', gap: '12px' }}>
-                    {goals.filter((g: any) => g.goal_type_id !== 5 && g.goal_type_id !== 7).slice(0, 3).map((goal: any, idx: number) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {goals.filter((g: any) => g.goal_type_id !== 5 && g.goal_type_id !== 7).slice(0, 4).map((goal: any, idx: number) => (
                         <motion.div
                             key={goal.id || idx}
-                            whileHover={{ y: -5 }}
+                            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
                             className="premium-card"
-                            style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}
+                            style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', display: 'flex', minHeight: '100px' }}
                             onClick={() => onViewPlan(clientData!, goalsSummary)}
                         >
-                            <div style={{ height: '110px', position: 'relative' }}>
-                                <img src={getGoalImage(goal.name, goal.goal_type_id)} alt={goal.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
-                                <div style={{ position: 'absolute', bottom: '10px', left: '12px', color: '#fff', fontWeight: '900', fontSize: '15px' }}>{goal.name}</div>
+                            {/* Image */}
+                            <div style={{ width: '100px', flexShrink: 0, position: 'relative' }}>
+                                <img
+                                    src={getGoalImage(goal.name, goal.goal_type_id)}
+                                    alt={goal.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.25), transparent)' }} />
                             </div>
-                            <div style={{ padding: '12px 14px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Стоимость</span>
-                                    <strong style={{ fontSize: '14px' }}>{formatMoney(goal.target_amount)}</strong>
+
+                            {/* Content */}
+                            <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                                <div style={{ fontWeight: '800', fontSize: '15px', color: '#1e293b', marginBottom: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {goal.name}
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                                    {goal.initial_capital != null && goal.initial_capital > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Сейчас</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#475569', whiteSpace: 'nowrap' }}>{formatMoney(goal.initial_capital)}</div>
+                                        </div>
+                                    )}
+                                    {goal.target_amount != null && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Цель</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap' }}>{formatMoney(goal.target_amount)}</div>
+                                        </div>
+                                    )}
+                                    {goal.monthly_replenishment != null && goal.monthly_replenishment > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>В месяц</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981', whiteSpace: 'nowrap' }}>{formatMoney(goal.monthly_replenishment)}</div>
+                                        </div>
+                                    )}
+                                    {goal.term_months != null && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Срок</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#475569' }}>
+                                                {goal.term_months >= 12
+                                                    ? `${Math.round(goal.term_months / 12)} ${Math.round(goal.term_months / 12) === 1 ? 'год' : Math.round(goal.term_months / 12) < 5 ? 'года' : 'лет'}`
+                                                    : `${goal.term_months} мес`}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
                     ))}
                     <motion.div
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
                         className="premium-card"
                         onClick={onStartCJM}
                         style={{
                             border: '2px dashed #e2e8f0', background: '#f8fafc',
-                            display: 'flex', flexDirection: 'column', gap: '8px',
-                            justifyContent: 'center', alignItems: 'center', cursor: 'pointer', height: '160px'
+                            display: 'flex', flexDirection: 'row', gap: '12px',
+                            justifyContent: 'center', alignItems: 'center', cursor: 'pointer', height: '64px'
                         }}
                     >
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                            <span style={{ fontSize: '24px', color: '#94a3b8', fontWeight: '300' }}>+</span>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+                            <span style={{ fontSize: '20px', color: '#94a3b8', fontWeight: '300' }}>+</span>
                         </div>
-                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#94a3b8' }}>Добавить цель</span>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#94a3b8' }}>Добавить цель</span>
                     </motion.div>
                 </div>
             </div>

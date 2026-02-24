@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 interface HeaderProps {
     activePage?: 'past' | 'present' | 'future';
@@ -10,18 +10,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activePage = 'present', onNavigate, onLogout }) => {
     const handleNavClick = (page: 'past' | 'present' | 'future', e: React.MouseEvent) => {
         e.preventDefault();
-        if (onNavigate) {
-            onNavigate(page);
-        }
+        if (onNavigate) onNavigate(page);
     };
-
-    const getLinkStyle = (page: string) => ({
-        color: activePage === page ? '#111' : '#666',
-        fontWeight: activePage === page ? 'bold' : 'normal',
-        textDecoration: 'none',
-        fontSize: '14px',
-        cursor: 'pointer'
-    });
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -31,70 +21,81 @@ const Header: React.FC<HeaderProps> = ({ activePage = 'present', onNavigate, onL
 
     return (
         <header style={{
-            height: '64px',
+            height: '56px',
             background: '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 32px',
+            padding: '0 16px',
             borderBottom: '1px solid #eee',
             position: 'sticky',
             top: 0,
-            zIndex: 100
+            zIndex: 100,
+            gap: '8px',
         }}>
             {/* Logo */}
             <div style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
+                fontSize: '17px',
+                fontWeight: '800',
                 color: '#333',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
             }}>
-                <span style={{ color: '#D946EF' }}>Anna</span> Dengina
+                <span style={{ color: '#D946EF' }}>Anna</span>
             </div>
 
             {/* Navigation */}
-            <nav style={{ display: 'flex', gap: '24px' }}>
-                <a href="#" onClick={(e) => handleNavClick('past', e)} style={getLinkStyle('past')}>Прошлое</a>
-                <a href="#" onClick={(e) => handleNavClick('present', e)} style={getLinkStyle('present')}>Настоящее</a>
-                <a href="#" onClick={(e) => handleNavClick('future', e)} style={getLinkStyle('future')}>Будущее</a>
+            <nav style={{
+                display: 'flex',
+                gap: '4px',
+                flex: 1,
+                justifyContent: 'center',
+            }}>
+                {(['past', 'present', 'future'] as const).map((page) => {
+                    const labels = { past: 'Прошлое', present: 'Настоящее', future: 'Будущее' };
+                    const isActive = activePage === page;
+                    return (
+                        <a
+                            key={page}
+                            href="#"
+                            onClick={(e) => handleNavClick(page, e)}
+                            style={{
+                                color: isActive ? '#fff' : '#666',
+                                fontWeight: isActive ? '700' : '500',
+                                textDecoration: 'none',
+                                fontSize: '13px',
+                                cursor: 'pointer',
+                                padding: '6px 10px',
+                                borderRadius: '20px',
+                                background: isActive ? '#D946EF' : 'transparent',
+                                transition: 'all 0.2s ease',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {labels[page]}
+                        </a>
+                    );
+                })}
             </nav>
 
-            {/* User Profile */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    border: '1px solid #ddd',
+            {/* Logout */}
+            <button
+                onClick={handleLogout}
+                style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#bbb',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#666'
-                }}>
-                    <User size={18} />
-                </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#999',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '13px',
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        transition: 'color 0.2s'
-                    }}
-                    title="Выйти"
-                >
-                    <LogOut size={16} />
-                </button>
-            </div>
+                    padding: '6px',
+                    borderRadius: '8px',
+                    flexShrink: 0,
+                }}
+                title="Выйти"
+            >
+                <LogOut size={18} />
+            </button>
         </header>
     );
 };
