@@ -257,7 +257,7 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                 const nonZero = (items: { name: string; amount: number }[]) => items.filter((i) => (i.amount || 0) > 0);
                 const initialNonZero = nonZero(initialInstruments);
                 const monthlyNonZero = nonZero(monthlyInstruments);
-                const buildDonutGradient = (items: { name: string; amount: number }[], total: number) => {
+                const buildDonutGradient = (items: { name: string; amount: number }[]) => {
                     const sum = items.reduce((s, i) => s + i.amount, 0);
                     if (items.length === 0 || sum <= 0) return '#e2e8f0';
                     let endAngleDeg = 0; // в градусах 0–360
@@ -284,7 +284,7 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                                         width: '100px',
                                         height: '100px',
                                         borderRadius: '50%',
-                                        background: buildDonutGradient(initialNonZero, totalInitial),
+                                        background: buildDonutGradient(initialNonZero),
                                         position: 'relative',
                                         flexShrink: 0,
                                     }}>
@@ -343,7 +343,7 @@ const PresentPage: React.FC<PresentPageProps> = ({ clientData, onViewPlan, onSta
                                         width: '100px',
                                         height: '100px',
                                         borderRadius: '50%',
-                                        background: buildDonutGradient(monthlyNonZero, totalMonthly || 1),
+                                        background: buildDonutGradient(monthlyNonZero),
                                         position: 'relative',
                                         flexShrink: 0,
                                     }}>

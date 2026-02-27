@@ -93,6 +93,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                     if (/возраст|сколько вам лет|укажите.*возраст|полных лет/i.test(lastContent)) step = 'age';
                     else if (/пол\s*[?]?$|какой ваш пол|мужской|женский/i.test(lastContent)) step = 'gender';
                     else if (/цел|выберите цель|какая.*цел|целей вам ближе/i.test(lastContent)) step = 'goal_selection';
+                    else if (/параметр.*цел|цель.*параметр|сумма.*цел|срок.*цел|целевую сумму/i.test(lastContent)) step = 'goal_parameters';
                     else if (/капитал|текущий капитал|сбережения|ликвидн/i.test(lastContent)) step = 'assets';
                     else if (/финансовый резерв|финрезерв|резерв/i.test(lastContent)) step = 'fin_reserve';
                     else if (/защит.*жизн|страхов|нсж|лимит/i.test(lastContent)) step = 'life_insurance';
