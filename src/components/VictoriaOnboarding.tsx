@@ -341,9 +341,9 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
             sender: 'user'
         }]);
 
-        // По умолчанию: 10% капитала в стартовый взнос, 1% в месяц на пополнение
+        // По умолчанию: 10% капитала в стартовый взнос, 0.5% в месяц на пополнение
         const startDefault = Math.round(((capital || 0) * 0.1) / 10000) * 10000;
-        const monthlyDefault = Math.round(((capital || 0) * 0.01) / 5000) * 5000;
+        const monthlyDefault = Math.round(((capital || 0) * 0.005) / 1000) * 1000;
         setFinInitial(startDefault);
         setFinMonthly(monthlyDefault);
         setCurrentStep('fin_reserve');
@@ -418,7 +418,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                     display: flex;
                     flex-direction: column;
                     gap: 20px;
-                    background: #f8fafc;
+                    background: transparent;
                     scrollbar-width: none;
                 }
 
@@ -429,14 +429,17 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                     font-size: 16px;
                     line-height: 1.5;
                     position: relative;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+                    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+                    backdrop-filter: blur(16px);
+                    -webkit-backdrop-filter: blur(16px);
                 }
 
                 .message-victoria {
                     align-self: flex-start;
-                    background: #fff;
+                    background: rgba(255, 255, 255, 0.7);
                     color: #334155;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid rgba(255, 255, 255, 0.9);
+                    border-left: 3px solid #38bdf8;
                     border-bottom-left-radius: 4px;
                 }
 
@@ -444,44 +447,97 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                     max-width: 100%;
                 }
 
-                .goal-params-bubble {
-                    width: 85%;
-                    max-width: 85%;
+                .message-bubble .btn-primary {
+                    width: auto !important;
+                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+                    color: #0f172a !important;
+                    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.05), inset 0 2px 5px rgba(255,255,255,1) !important;
+                    backdrop-filter: blur(10px) !important;
+                    font-weight: 800 !important;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+                }
+                
+                .message-bubble .btn-primary:hover {
+                    box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3), inset 0 2px 5px rgba(255,255,255,1) !important;
+                    border-color: rgba(56, 189, 248, 0.8) !important;
+                    transform: translateY(-2px) !important;
+                    color: #0284c7 !important;
+                }
+                
+                .message-bubble .btn-primary:active {
+                    transform: translateY(1px) !important;
+                    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2) !important;
+                }
+
+                .message-bubble input[type="range"] {
+                    -webkit-appearance: none;
+                    width: 100%;
+                    height: 8px;
+                    background: rgba(15, 23, 42, 0.05);
+                    border-radius: 4px;
+                    outline: none;
+                    margin: 15px 0;
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                    border: 1px solid rgba(255,255,255,0.5);
+                }
+                
+                .message-bubble input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 24px;
+                    height: 24px;
+                    background: #fff;
+                    border: 3px solid #38bdf8;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+                    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s ease;
+                }
+                
+                .message-bubble input[type="range"]::-webkit-slider-thumb:hover {
+                    transform: scale(1.15);
+                    box-shadow: 0 6px 16px rgba(56, 189, 248, 0.5);
                 }
 
                 .message-user {
                     align-self: flex-end;
-                    background: var(--primary);
-                    color: #000;
+                    background: linear-gradient(135deg, rgba(255, 217, 61, 0.3) 0%, rgba(255, 199, 80, 0.1) 100%);
+                    color: #0f172a;
                     font-weight: 600;
+                    border: 1px solid rgba(255, 199, 80, 0.5);
+                    border-right: 3px solid #f59e0b;
                     border-bottom-right-radius: 4px;
                 }
 
                 .chat-input-area {
                     padding: 24px;
-                    background: #fff;
-                    border-top: 1px solid #f1f5f9;
+                    background: rgba(255, 255, 255, 0.8);
+                    backdrop-filter: blur(10px);
+                    border-top: 1px solid rgba(255, 255, 255, 0.5);
                     display: flex;
                     flex-direction: column;
                     gap: 16px;
                 }
 
                 .deepseek-input-box {
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
+                    background: rgba(255, 255, 255, 0.9);
+                    border: 1px solid rgba(226, 232, 240, 0.8);
                     border-radius: 24px;
                     padding: 8px 16px;
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-                    transition: all 0.2s;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.03), inset 0 2px 4px rgba(255,255,255,1);
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
                 }
 
                 .deepseek-input-box:focus-within {
-                    border-color: var(--primary);
+                    border-color: rgba(56, 189, 248, 0.8);
                     background: #fff;
-                    box-shadow: 0 4px 25px rgba(255, 199, 80, 0.15);
+                    box-shadow: 0 8px 25px rgba(56, 189, 248, 0.15), inset 0 2px 4px rgba(255,255,255,1);
+                    transform: translateY(-2px);
                 }
 
                 .deepseek-input {
@@ -602,59 +658,106 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                 }
                 .goal-grid {
                     display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 8px;
-                    padding: 4px;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 16px;
+                    padding: 8px;
                 }
                 .goal-card {
                     position: relative;
-                    background: transparent;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 12px;
+                    border: 1px solid rgba(255, 255, 255, 0.9);
+                    border-radius: 24px;
                     padding: 0;
+                    height: 120px;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    display: flex;
+                    align-items: flex-end;
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), inset 0 2px 4px rgba(255, 255, 255, 0.6);
                     overflow: hidden;
                 }
+                .goal-card::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 100%);
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    pointer-events: none;
+                    z-index: 3;
+                }
                 .goal-card:hover {
-                    border-color: var(--primary);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    border-color: rgba(56, 189, 248, 1);
+                    box-shadow: 0 16px 32px rgba(56, 189, 248, 0.25), inset 0 0 15px rgba(255,255,255,0.8);
+                    transform: translateY(-4px) scale(1.02);
+                }
+                .goal-card:active {
+                    transform: translateY(2px) scale(0.98);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+                }
+                .goal-card:hover::before {
+                    opacity: 1;
+                }
+                .goal-card span {
+                    position: relative;
+                    z-index: 2;
+                    padding: 16px;
+                    font-size: 14px;
+                    font-weight: 800;
+                    color: #fff;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    line-height: 1.2;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+                    width: 100%;
+                    text-align: left;
+                }
+                .goal-card:hover span {
+                    color: #e0f2fe;
+                }
+                .goal-card-img-wrapper {
+                    position: absolute;
+                    inset: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 1;
+                }
+                .goal-card-img-wrapper::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%);
+                    pointer-events: none;
                 }
                 .goal-card img {
                     width: 100%;
-                    height: 90px;
+                    height: 100%;
                     object-fit: cover;
-                    display: block;
+                    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                 }
-                .goal-card span {
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    padding: 6px 8px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: #f9fafb;
-                    line-height: 1.3;
-                    background: linear-gradient(to top, rgba(15,23,42,0.85), rgba(15,23,42,0.0));
-                    word-wrap: break-word;
-                    white-space: normal;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
+                .goal-card:hover img {
+                    transform: scale(1.08);
                 }
 
                 @media (max-width: 768px) {
                     .goal-grid {
                         grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 12px;
+                    }
+                    .goal-card {
+                        height: 90px;
+                        border-radius: 16px;
+                    }
+                    .goal-card span {
+                        font-size: 11px;
+                        padding: 10px;
+                        font-weight: 700;
                     }
                 }
 
-                @media (min-width: 1200px) {
+                @media (min-width: 1024px) {
                     .goal-grid {
-                        grid-template-columns: repeat(4, minmax(0, 1fr));
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 20px;
                     }
                 }
             `}</style>
@@ -764,7 +867,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                     <button
                                         onClick={handleAgeSubmit}
                                         className="btn-primary"
-                                        style={{ padding: '8px 18px', borderRadius: '999px', fontSize: '13px', boxShadow: '0 3px 10px rgba(255,199,80,0.25)' }}
+                                        style={{ padding: '8px 18px', borderRadius: '999px', fontSize: '13px' }}
                                     >
                                         Далее <ChevronRight size={18} style={{ marginLeft: '6px' }} />
                                     </button>
@@ -781,17 +884,19 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                             exit={{ opacity: 0, y: 20 }}
                             style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-start' }}
                         >
-                            <div className="message-bubble message-victoria goal-selection-bubble">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div className="message-bubble message-victoria goal-selection-bubble" style={{ background: 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                     <div style={{ fontWeight: '800', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                        Выберите основную цель {data.goals?.length ? `(${data.goals.length})` : ''}
+                                        Система: Ввод координат цели {data.goals?.length ? `[${data.goals.length}]` : ''}
                                     </div>
                                 </div>
                                 <div className="goal-grid">
                                     {GOAL_GALLERY_ITEMS.map(goal => (
                                         <div key={goal.id} className="goal-card" onClick={() => handleGoalSelect(goal)}>
-                                            <img src={goal.image} alt={goal.title} />
                                             <span>{goal.title}</span>
+                                            <div className="goal-card-img-wrapper">
+                                                <img src={goal.image} alt={goal.title} />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -818,10 +923,10 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                             exit={{ opacity: 0, y: 20 }}
                             style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-start' }}
                         >
-                            <div className="message-bubble message-victoria goal-params-bubble">
+                            <div className="message-bubble message-victoria" style={{ width: '100%', maxWidth: '100%' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                                     <img
-                                        src={GOAL_GALLERY_ITEMS.find(i => i.typeId === 3)?.image}
+                                        src={GOAL_GALLERY_ITEMS.find(i => i.typeId === 12)?.image}
                                         alt=""
                                         style={{ width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover' }}
                                     />
@@ -829,9 +934,6 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                 </div>
 
                                 <div style={{ padding: '8px 0 0' }}>
-                                    <div style={{ marginBottom: '12px', fontSize: '14px', color: '#64748b' }}>
-                                        Введите, пожалуйста, сумму вашего текущего капитала (сбережения, вклады, инвестиции и другие ликвидные активы).
-                                    </div>
                                     <input
                                         type="text"
                                         value={initialCapitalInput ? formatNumber(initialCapitalInput) : ''}
@@ -928,6 +1030,9 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
 
                                             setCurrentStep('life_insurance');
                                             setAiStage('LifeInsurance');
+                                            // Дефолт по страховке: 10% капитала * 20 (округляем до 500к)
+                                            const lifeDefault = Math.round(((initialCapitalInput || 0) * 0.1 * 20) / 500000) * 500000;
+                                            setLifeLimit(lifeDefault || 1500000);
                                             setIsTyping(true);
                                             const aiMsgId = 'life_insurance_' + Math.random().toString();
                                             setMessages(prev => [...prev, { id: aiMsgId, text: '', sender: 'victoria', isStreaming: true }]);
@@ -1083,11 +1188,13 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                             style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-start' }}
                         >
                             <div className="message-bubble message-victoria goal-params-bubble">
-                                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>
-                                    Защита жизни
-                                </div>
-                                <div style={{ marginBottom: '16px', fontSize: '14px', color: '#64748b' }}>
-                                    Выберите лимит страхового покрытия, который будет комфортным для вашей семьи.
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+                                    <img
+                                        src={GOAL_GALLERY_ITEMS.find(i => i.typeId === 5)?.image}
+                                        alt=""
+                                        style={{ width: '50px', height: '50px', borderRadius: '12px', objectFit: 'cover' }}
+                                    />
+                                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>Защита жизни</div>
                                 </div>
 
                                 <div style={{ marginBottom: '8px' }}>
@@ -1181,9 +1288,6 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                             <div className="message-bubble message-victoria goal-params-bubble">
                                 <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>
                                     Ваш доход
-                                </div>
-                                <div style={{ marginBottom: '16px', fontSize: '14px', color: '#64748b' }}>
-                                    Укажите ваш среднемесячный доход до вычета НДФЛ — это поможет точнее подобрать решения.
                                 </div>
 
                                 <div style={{ marginBottom: '12px' }}>
