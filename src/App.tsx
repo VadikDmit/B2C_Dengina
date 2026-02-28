@@ -101,7 +101,7 @@ function App() {
             const fullClient = await clientApi.getMyPlan();
             setClientData(fullClient);
             setSelectedClient(fullClient);
-            
+
             if (fullClient.goals_summary) {
                 setCalculationResult(fullClient.goals_summary);
             } else {
@@ -150,7 +150,48 @@ function App() {
         } finally {
             setLoadingPlan(false);
         }
-    }, []);
+    }, [loadClientData]);
+
+    const handleAddGoal = useCallback(async (goal: any) => {
+        setLoadingPlan(true);
+        try {
+            const result = await clientApi.addGoal(goal);
+            setCalculationResult(result);
+            loadClientData();
+        } catch (err) {
+            console.error('Failed to add goal:', err);
+            alert('Не удалось добавить цель.');
+        } finally {
+            setLoadingPlan(false);
+        }
+    }, [loadClientData]);
+
+    const handleDeleteGoal = useCallback(async (goalId: number) => {
+        if (!window.confirm('Вы уверены, что хотите удалить эту цель?')) return;
+        setLoadingPlan(true);
+        try {
+            await clientApi.deleteGoal(goalId);
+            loadClientData();
+        } catch (err) {
+            console.error('Failed to delete goal:', err);
+            alert('Не удалось удалить цель.');
+        } finally {
+            setLoadingPlan(false);
+        }
+    }, [loadClientData]);
+
+    const handleGoToReport = useCallback(() => {
+        // Find existing client ID
+        const cid = selectedClient?.id || clientData?.id;
+        if (cid) {
+            // Open report in new tab or navigate?
+            // For now, let's assume there's a report page or we just provide the link
+            const url = `https://pfpbackend-production.up.railway.app/api/my/reports/${cid}`;
+            window.open(url, '_blank');
+        } else {
+            alert('Ошибка: ID клиента не найден.');
+        }
+    }, [selectedClient, clientData]);
 
     // Auth pages (no header)
     if (currentPage === 'loading') {
@@ -257,6 +298,9 @@ function App() {
                         client={selectedClient}
                         onRestart={() => setCurrentPage('present')}
                         onRecalculate={handleRecalculate}
+                        onAddGoal={handleAddGoal}
+                        onDeleteGoal={handleDeleteGoal}
+                        onGoToReport={handleGoToReport}
                         isCalculating={loadingPlan}
                     />
                 </div>

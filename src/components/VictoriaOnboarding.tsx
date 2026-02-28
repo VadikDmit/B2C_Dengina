@@ -50,7 +50,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [currentStep, setCurrentStep] = useState<OnboardingStep>('gender');
+    const [currentStep, setCurrentStep] = useState<OnboardingStep>('chat');
     const [aiStage, setAiStage] = useState('anketa1');
     const [editingGoal, setEditingGoal] = useState<EditingGoal | null>(null);
     const [initialCapitalInput, setInitialCapitalInput] = useState<number>(data.initialCapital || 0);
@@ -123,7 +123,8 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                             (fullText) => {
                                 setMessages([{ id: aiMsgId, text: fullText, sender: 'victoria', isStreaming: false }]);
                                 setIsTyping(false);
-                                // The AI asks for gender on 'start', so we stay in 'gender' step
+                                // Переключаем на выбор пола только ПОСЛЕ того, как она договорила
+                                setCurrentStep('gender');
                             }
                         );
                     } catch (streamErr) {
@@ -147,9 +148,13 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
 
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            // Мягкий скролл при обновлении сообщений или шага
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
         }
-    }, [messages, isTyping]);
+    }, [messages, currentStep, isTyping]);
 
     const handleSendMessage = async (textOverride?: string, stageOverride?: string) => {
         const text = textOverride || inputValue;
@@ -889,6 +894,15 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                     <div style={{ fontWeight: '800', color: '#64748b', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                         Система: Ввод координат цели {data.goals?.length ? `[${data.goals.length}]` : ''}
                                     </div>
+                                    {data.goals && data.goals.length > 0 && (
+                                        <button
+                                            onClick={handleStartAssetsStep}
+                                            className="btn-primary"
+                                            style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px', boxShadow: '0 4px 12px rgba(255,199,80,0.3)' }}
+                                        >
+                                            Далее <ChevronRight size={16} />
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="goal-grid">
                                     {GOAL_GALLERY_ITEMS.map(goal => (
@@ -900,17 +914,6 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                         </div>
                                     ))}
                                 </div>
-                                {data.goals && data.goals.length > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                                        <button
-                                            onClick={handleStartAssetsStep}
-                                            className="btn-primary"
-                                            style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px' }}
-                                        >
-                                            Далее <ChevronRight size={16} style={{ marginLeft: '6px' }} />
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </motion.div>
                     )}
@@ -985,8 +988,34 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
 
                                 <div style={{ marginBottom: '18px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Текущая сумма</span>
+                                        <input
+                                            type="number"
+                                            value={initialCapitalInput}
+                                            onChange={e => setInitialCapitalInput(parseInt(e.target.value) || 0)}
+                                            style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                        />
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={10000000}
+                                        step={100000}
+                                        value={initialCapitalInput}
+                                        onChange={e => setInitialCapitalInput(parseInt(e.target.value))}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '18px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                         <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Первоначальный капитал в резерве</span>
-                                        <span style={{ fontWeight: 800, color: '#1e293b' }}>{formatCurrency(finInitial)}</span>
+                                        <input
+                                            type="number"
+                                            value={finInitial}
+                                            onChange={e => setFinInitial(parseInt(e.target.value) || 0)}
+                                            style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                        />
                                     </div>
                                     <input
                                         type="range"
@@ -995,13 +1024,20 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                         step={10000}
                                         value={finInitial}
                                         onChange={e => setFinInitial(parseInt(e.target.value))}
+                                        style={{ width: '100%' }}
                                     />
                                 </div>
 
                                 <div style={{ marginBottom: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                         <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Ежемесячное пополнение</span>
-                                        <span style={{ fontWeight: 800, color: '#1e293b' }}>{formatCurrency(finMonthly)}</span>
+                                        <input
+                                            type="number"
+                                            value={finMonthly}
+                                            onChange={e => setFinMonthly(parseInt(e.target.value) || 0)}
+                                            className="manual-input"
+                                            style={{ width: '100px', textAlign: 'right', fontWeight: 800, border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                        />
                                     </div>
                                     <input
                                         type="range"
@@ -1010,6 +1046,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                         step={5000}
                                         value={finMonthly}
                                         onChange={e => setFinMonthly(parseInt(e.target.value))}
+                                        style={{ width: '100%' }}
                                     />
                                 </div>
 
@@ -1090,77 +1127,113 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {(editingGoal.typeId === 1 || editingGoal.typeId === 2) ? (
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                 <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Желаемый доход</span>
-                                                <span style={{ fontWeight: '800', color: '#1e293b' }}>{formatCurrency(editingGoal.desiredMonthlyIncome)}</span>
+                                                <input
+                                                    type="number"
+                                                    value={editingGoal.desiredMonthlyIncome}
+                                                    onChange={e => setEditingGoal({ ...editingGoal, desiredMonthlyIncome: parseInt(e.target.value) || 0 })}
+                                                    style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                />
                                             </div>
                                             <input
                                                 type="range" min="10000" max="1000000" step="5000"
                                                 value={editingGoal.desiredMonthlyIncome}
                                                 onChange={e => setEditingGoal({ ...editingGoal, desiredMonthlyIncome: parseInt(e.target.value) })}
+                                                style={{ width: '100%' }}
                                             />
                                         </div>
                                     ) : editingGoal.typeId === 8 ? (
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                 <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Капитал</span>
-                                                <span style={{ fontWeight: '800', color: '#1e293b' }}>{formatCurrency(editingGoal.initialCapital)}</span>
+                                                <input
+                                                    type="number"
+                                                    value={editingGoal.initialCapital}
+                                                    onChange={e => setEditingGoal({ ...editingGoal, initialCapital: parseInt(e.target.value) || 0 })}
+                                                    style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                />
                                             </div>
                                             <input
                                                 type="range" min="1000000" max="100000000" step="500000"
                                                 value={editingGoal.initialCapital}
                                                 onChange={e => setEditingGoal({ ...editingGoal, initialCapital: parseInt(e.target.value) })}
+                                                style={{ width: '100%' }}
                                             />
                                         </div>
                                     ) : (editingGoal.typeId === 3 || editingGoal.typeId === 7) ? (
                                         <>
                                             <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                     <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Начальный капитал</span>
-                                                    <span style={{ fontWeight: '800', color: '#1e293b' }}>{formatCurrency(editingGoal.initialCapital)}</span>
+                                                    <input
+                                                        type="number"
+                                                        value={editingGoal.initialCapital}
+                                                        onChange={e => setEditingGoal({ ...editingGoal, initialCapital: parseInt(e.target.value) || 0 })}
+                                                        style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                    />
                                                 </div>
                                                 <input
                                                     type="range" min="0" max="10000000" step="100000"
                                                     value={editingGoal.initialCapital}
                                                     onChange={e => setEditingGoal({ ...editingGoal, initialCapital: parseInt(e.target.value) })}
+                                                    style={{ width: '100%' }}
                                                 />
                                             </div>
                                             <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                     <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Ежемесячное пополнение</span>
-                                                    <span style={{ fontWeight: '800', color: '#1e293b' }}>{formatCurrency(editingGoal.monthlyReplenishment)}</span>
+                                                    <input
+                                                        type="number"
+                                                        value={editingGoal.monthlyReplenishment}
+                                                        onChange={e => setEditingGoal({ ...editingGoal, monthlyReplenishment: parseInt(e.target.value) || 0 })}
+                                                        style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                    />
                                                 </div>
                                                 <input
                                                     type="range" min="0" max="500000" step="5000"
                                                     value={editingGoal.monthlyReplenishment}
                                                     onChange={e => setEditingGoal({ ...editingGoal, monthlyReplenishment: parseInt(e.target.value) })}
+                                                    style={{ width: '100%' }}
                                                 />
                                             </div>
                                         </>
                                     ) : (
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                 <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Стоимость цели</span>
-                                                <span style={{ fontWeight: '800', color: '#1e293b' }}>{formatCurrency(editingGoal.targetAmount)}</span>
+                                                <input
+                                                    type="number"
+                                                    value={editingGoal.targetAmount}
+                                                    onChange={e => setEditingGoal({ ...editingGoal, targetAmount: parseInt(e.target.value) || 0 })}
+                                                    style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                />
                                             </div>
                                             <input
                                                 type="range" min="100000" max="50000000" step="100000"
                                                 value={editingGoal.targetAmount}
                                                 onChange={e => setEditingGoal({ ...editingGoal, targetAmount: parseInt(e.target.value) })}
+                                                style={{ width: '100%' }}
                                             />
                                         </div>
                                     )}
 
                                     {editingGoal.typeId !== 1 && editingGoal.typeId !== 7 && editingGoal.typeId !== 8 && (
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                                                 <span style={{ color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Срок (лет)</span>
-                                                <span style={{ fontWeight: '800', color: '#1e293b' }}>{Math.floor(editingGoal.termMonths / 12)} лет</span>
+                                                <input
+                                                    type="number"
+                                                    value={Math.floor(editingGoal.termMonths / 12)}
+                                                    onChange={e => setEditingGoal({ ...editingGoal, termMonths: (parseInt(e.target.value) || 1) * 12 })}
+                                                    style={{ width: '60px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                                />
                                             </div>
                                             <input
                                                 type="range" min="1" max="50" step="1"
                                                 value={editingGoal.termMonths / 12}
                                                 onChange={e => setEditingGoal({ ...editingGoal, termMonths: parseInt(e.target.value) * 12 })}
+                                                style={{ width: '100%' }}
                                             />
                                         </div>
                                     )}
@@ -1198,18 +1271,28 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                 </div>
 
                                 <div style={{ marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Лимит покрытия</span>
+                                        <input
+                                            type="number"
+                                            value={lifeLimit}
+                                            onChange={e => setLifeLimit(parseInt(e.target.value) || 0)}
+                                            style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                        />
+                                    </div>
                                     <input
                                         type="range"
                                         min={0}
-                                        max={10000000}
+                                        max={50000000}
                                         step={500000}
                                         value={lifeLimit}
                                         onChange={e => setLifeLimit(parseInt(e.target.value))}
+                                        style={{ width: '100%' }}
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '12px', color: '#94a3b8' }}>
                                         <span>0 ₽</span>
-                                        <span>5 млн ₽</span>
-                                        <span>10 млн ₽</span>
+                                        <span>25 млн ₽</span>
+                                        <span>50 млн ₽</span>
                                     </div>
                                 </div>
                                 <div style={{
@@ -1221,7 +1304,8 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                     fontSize: '18px',
                                     fontWeight: 700,
                                     color: '#1e293b',
-                                    marginBottom: '10px'
+                                    marginBottom: '10px',
+                                    display: 'none' // Hide since we have manual input above
                                 }}>
                                     {formatCurrency(lifeLimit)}
                                 </div>
@@ -1291,6 +1375,15 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                 </div>
 
                                 <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Сумма дохода</span>
+                                        <input
+                                            type="number"
+                                            value={data.avgMonthlyIncome}
+                                            onChange={e => setData(prev => ({ ...prev, avgMonthlyIncome: parseInt(e.target.value) || 0 }))}
+                                            style={{ width: '120px', textAlign: 'right', fontWeight: '800', border: 'none', background: 'transparent', outline: 'none', color: '#1e293b' }}
+                                        />
+                                    </div>
                                     <input
                                         type="range"
                                         min={30000}
@@ -1298,6 +1391,7 @@ const VictoriaOnboarding: React.FC<VictoriaOnboardingProps> = ({ data, setData, 
                                         step={5000}
                                         value={data.avgMonthlyIncome}
                                         onChange={e => setData(prev => ({ ...prev, avgMonthlyIncome: parseInt(e.target.value) }))}
+                                        style={{ width: '100%' }}
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '12px', color: '#94a3b8' }}>
                                         <span>30 000 ₽</span>

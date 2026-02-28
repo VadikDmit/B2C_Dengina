@@ -20,6 +20,55 @@
     --shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
 }
 
+.manual-input {
+    border: none !important;
+    background: transparent !important;
+    padding: 2px 4px !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    font-family: inherit !important;
+    font-size: 16px !important;
+    width: auto !important;
+    outline: none !important;
+    text-align: right !important;
+    transition: all 0.2s ease !important;
+    border-bottom: 2px solid transparent !important;
+}
+
+.manual-input:focus {
+    border-bottom: 2px solid var(--primary) !important;
+    background: rgba(255, 199, 80, 0.05) !important;
+}
+
+.premium-loader {
+    width: 60px;
+    height: 60px;
+    border: 3px solid rgba(255, 199, 80, 0.1);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.premium-loader::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid var(--primary);
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -294,12 +343,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
         padding: 16px 12px !important;
         gap: 20px !important;
     }
+
     .presentPortfolioGrid {
         grid-template-columns: 1fr !important;
     }
+
     .presentGoalsGrid {
         grid-template-columns: 1fr !important;
     }
+
     .presentProtectionGrid {
         grid-template-columns: 1fr !important;
     }

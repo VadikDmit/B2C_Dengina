@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Send,
@@ -10,16 +10,8 @@ import { getGoalImage, GOAL_GALLERY_ITEMS } from '../utils/GoalImages';
 import { PortfolioDistribution } from './PortfolioDistribution';
 import { formatMonthsToDate } from '../utils/dateUtils';
 import AddGoalModal from './AddGoalModal';
-
-// Specialized Recalculate Forms
-import PensionForm from './recalculate-forms/PensionForm';
-import PassiveIncomeForm from './recalculate-forms/PassiveIncomeForm';
-import InvestmentForm from './recalculate-forms/InvestmentForm';
-import PurchaseForm from './recalculate-forms/PurchaseForm';
-import LifeInsuranceForm from './recalculate-forms/LifeInsuranceForm';
-import FinReserveForm from './recalculate-forms/FinReserveForm';
-import RentForm from './recalculate-forms/RentForm';
-import type { BaseFormProps } from './recalculate-forms/SharedFields';
+import VictoriaChatModal from './VictoriaChatModal';
+import { aiApi } from '../api/aiApi';
 
 export interface GoalCardSlot {
   label: string;
@@ -29,24 +21,18 @@ export interface GoalCardSlot {
 interface GoalResult {
   id: number;
   name: string;
-  // Fields for editing (keep existing logic for simple access in edit form)
   targetAmount: number;
   initialCapital: number;
   monthlyPayment: number;
   termMonths: number;
-
   goalType?: string;
   goalTypeId?: number;
-
-  // New: Standardized display slots
   displaySlots: GoalCardSlot[];
-
-  // Specific fields for specialized cards (legacy or specific use)
-  totalPremium?: number; // unified premium
+  totalPremium?: number;
   risks?: any[];
   assets_allocation?: any[];
   portfolio_structure?: any;
-  originalData?: any; // Full goal result from backend
+  originalData?: any;
   targetMonthlyIncome?: number;
   yieldPercent?: number;
   initialInstruments?: any[];
@@ -86,34 +72,66 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
   onGoToReport,
   onRecalculate,
   isCalculating,
-}: ResultPageDesignProps) => {
-  const [editingGoal, setEditingGoal] = React.useState<GoalResult | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
-  const [editForm, setEditForm] = React.useState<EditFormState>({
+}) => {
+  const [editingGoal, setEditingGoal] = useState<GoalResult | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<EditFormState>({
     name: '',
     target_amount: 0,
     term_months: 0,
     initial_capital: 0
   });
-  const [snapshotForm, setSnapshotForm] = React.useState<EditFormState | null>(null);
+  const [snapshotForm, setSnapshotForm] = useState<EditFormState | null>(null);
+
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatField, setChatField] = useState<{ name: string; label: string; value: any } | null>(null);
+
+  const [aiMessage, setAiMessage] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+
+  useEffect(() => {
+    const startGreeting = async () => {
+      setIsAiTyping(true);
+      try {
+        await aiApi.sendStreamingMessage(
+          'futurePFP',
+          'Привет! Я подготовила финансовый план. Расскажи мне кратко, что ты о нем думаешь?',
+          (chunk) => setAiMessage(chunk),
+          () => setIsAiTyping(false)
+        );
+      } catch (err) {
+        console.error('AI Greeting error', err);
+        setAiMessage('Я подготовила для вас финансовый план с учетом ваших целей и ресурсов. Давайте обсудим его?');
+        setIsAiTyping(false);
+      }
+    };
+    startGreeting();
+  }, []);
+
+  const openFieldChat = (goal: GoalResult, slot: GoalCardSlot) => {
+    let fieldName = 'target_amount';
+    if (slot.label.includes('Срок')) fieldName = 'term_months';
+    if (slot.label.includes('капитал')) fieldName = 'initial_capital';
+    if (slot.label.includes('пополнение')) fieldName = 'monthly_replenishment';
+
+    setEditingGoal(goal);
+    setChatField({ name: fieldName, label: slot.label, value: slot.value });
+    setIsChatModalOpen(true);
+  };
 
   const handleEditGoal = (goal: GoalResult) => {
     setEditingGoal(goal);
-
-    // CRITICAL: Pull fields from goal_input (user inputs) FIRST, fallback to results
     const input = goal.originalData?.goal_input || {};
     const summary = goal.originalData?.summary || {};
     const details = goal.originalData?.details || {};
 
     const initialForm: EditFormState = {
       name: goal.name,
-      // Priority: User Input -> Calculated Result -> Legacy Field -> Default
       target_amount: input.target_amount ?? details.target_amount ?? summary.target_amount ?? goal.targetAmount ?? 0,
       desired_monthly_income: input.desired_monthly_income ?? details.target_amount ?? summary.target_amount ?? 0,
       term_months: input.term_months ?? details.term_months ?? summary.target_months ?? goal.termMonths ?? 0,
       initial_capital: input.initial_capital ?? summary.initial_capital ?? goal.initialCapital ?? 0,
       monthly_replenishment: input.monthly_replenishment ?? summary.monthly_replenishment ?? 0,
-
       ops_capital: input.ops_capital ?? details.ops_capital ?? goal.originalData?.ops_capital ?? 0,
       ipk_current: input.ipk_current ?? details.state_pension?.ipk_current ?? details.ipk_current ?? goal.originalData?.ipk_current ?? 0,
       risk_profile: input.risk_profile ?? details.risk_profile ?? summary.risk_profile ?? 'BALANCED',
@@ -124,65 +142,34 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
     setSnapshotForm(initialForm);
   };
 
-  const onSubmitEdit = () => {
-    console.log('onSubmitEdit (v2) called', { onRecalculate, editingGoal });
+  const onSubmitEdit = useCallback(() => {
     if (!onRecalculate || !editingGoal) return;
-
-    // 2. Build payload with ONLY changed fields
-    const goalPayload: any = {
-      goal_id: editingGoal.id
-    };
-
+    const goalPayload: any = { goal_id: editingGoal.id };
     let hasChanges = false;
     Object.keys(editForm).forEach(key => {
       const val = (editForm as any)[key];
       const snapVal = snapshotForm ? (snapshotForm as any)[key] : undefined;
-
-      // Robust comparison (ignore small differences in floats, compare as strings/numbers)
       const isChanged = typeof val === 'number' && typeof snapVal === 'number'
         ? Math.abs(val - snapVal) > 0.01
         : String(val) !== String(snapVal);
-
       if (isChanged) {
         goalPayload[key] = val;
         hasChanges = true;
       }
     });
-
     if (!hasChanges) {
-      console.log('No changes detected compared to snapshot');
       setEditingGoal(null);
       return;
     }
-
-    // Special logic for monthly_replenishment (if it was calculated but now user touched it)
-    const summary = editingGoal.originalData?.summary || {};
-    const originalCalculatedReplenishment = summary.monthly_replenishment || 0;
-
-    // If user set monthly_replenishment to something other than what was calculated
-    if (goalPayload.monthly_replenishment !== undefined && goalPayload.monthly_replenishment === originalCalculatedReplenishment) {
-      // If it matches exactly what was calculated, maybe user didn't mean to "fix" it?
-      // But in v2, the backend expects ONLY what needs to be updated.
-    }
-
-    // Important: send flat payload without { goals: [...] } wrapper per requirement
     onRecalculate(goalPayload);
-    // REMOVED: setEditingGoal(null); // Don't close the window
-  };
+  }, [onRecalculate, editingGoal, editForm, snapshotForm]);
 
-  // Access data directly from the root structure: { client_id, summary, goals }
   const calcRoot = calculationData || {};
   const calculatedGoals = calcRoot.goals || [];
-
-  // Extract Allocations
-  // New structure: calculationData.summary.consolidated_portfolio
   const consolidatedPortfolio = calcRoot?.summary?.consolidated_portfolio;
-
   const assetsAllocation = consolidatedPortfolio?.assets_allocation || [];
-
-  // Normalization for Cash Flow: convert annual to monthly
   const rawCashFlow = consolidatedPortfolio?.cash_flow_allocation || calcRoot?.cash_flow_allocation || [];
-  const cashFlowAllocation = rawCashFlow.map((item: { payment_frequency?: string; amount: number; name: string }) => {
+  const cashFlowAllocation = rawCashFlow.map((item: any) => {
     if (item.payment_frequency === 'annual') {
       return {
         ...item,
@@ -193,53 +180,28 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
     return item;
   });
 
-  // Tax Benefits Summary (New logic)
-  const taxBenefitsSummary = calcRoot?.summary?.tax_benefits_summary as {
-    totals?: {
-      deduction_2026?: number;
-      cofinancing_2026?: number;
-      total_deductions?: number;
-      total_cofinancing?: number;
-    }
-  } | undefined;
-  // Fallback to legacy structure if needed, but prioritize new summary
-  const taxPlanningLegacy = calcRoot.tax_planning as {
-    total_deductions?: number;
-    monthly_payments?: number;
-  } | undefined;
-
-  // "totals": { "deduction_2026": ..., "cofinancing_2026": ..., "total_deductions": ..., "total_cofinancing": ... }
+  const taxBenefitsSummary = calcRoot?.summary?.tax_benefits_summary;
+  const taxPlanningLegacy = calcRoot.tax_planning;
   const taxDeduction2026 = taxBenefitsSummary?.totals?.deduction_2026 || 0;
   const taxCofinancing2026 = taxBenefitsSummary?.totals?.cofinancing_2026 || 0;
   const taxTotalDeduction = taxBenefitsSummary?.totals?.total_deductions || taxPlanningLegacy?.total_deductions || 0;
   const taxTotalCofinancing = taxBenefitsSummary?.totals?.total_cofinancing || 0;
   const taxMonthlyPayment = taxPlanningLegacy?.monthly_payments || 0;
 
-
-  // Форматирование чисел
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value) + '₽';
+    return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value) + '₽';
   };
 
-  // Мапим результаты расчетов на карточки
-  const goalCards: GoalResult[] = (calculatedGoals as any[]).map((goalResult: any, _index: number) => {
+  const goalCards: GoalResult[] = (calculatedGoals as any[]).map((goalResult: any, index: number) => {
     const summary = goalResult?.summary || {};
     const details = goalResult?.details || {};
     const typeId = goalResult?.goal_type_id || 0;
-
-    // Helper formatter
     const fmt = (val: number | undefined) => val !== undefined ? formatCurrency(val) : '0₽';
     const fmtDate = (months: number | undefined) => months ? formatMonthsToDate(months) : '-';
-
-    // Standardized Slots Mapping
     let displaySlots: GoalCardSlot[] = [];
 
     switch (typeId) {
-      case 1: // PENSION
-      case 2: // PASSIVE_INCOME
+      case 1: case 2:
         displaySlots = [
           { label: 'Желаемый доход', value: fmt(summary.target_amount_initial) },
           { label: 'Первонач. капитал', value: fmt(summary.initial_capital) },
@@ -247,7 +209,7 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
           { label: 'Срок', value: fmtDate(summary.target_months) },
         ];
         break;
-      case 3: // INVESTMENT
+      case 3:
         displaySlots = [
           { label: 'Итоговый капитал', value: fmt(summary.projected_capital_at_end) },
           { label: 'Текущий капитал', value: fmt(summary.initial_capital) },
@@ -255,7 +217,7 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
           { label: 'Срок', value: fmtDate(summary.target_months) },
         ];
         break;
-      case 4: // OTHER
+      case 4:
         displaySlots = [
           { label: 'Стоимость сегодня', value: fmt(summary.target_amount_initial) },
           { label: 'Первонач. капитал', value: fmt(summary.initial_capital) },
@@ -263,7 +225,7 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
           { label: 'Срок', value: fmtDate(summary.target_months) },
         ];
         break;
-      case 5: // LIFE
+      case 5:
         const premium = summary.initial_capital || summary.premium || 0;
         displaySlots = [
           { label: 'Страховая сумма', value: fmt(summary.target_coverage) },
@@ -272,68 +234,41 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
           { label: 'Срок', value: fmtDate(summary.target_months) },
         ];
         break;
-      case 7: // FIN_RESERVE
+      case 7:
         displaySlots = [
           { label: 'Итоговый капитал', value: fmt(summary.projected_capital_at_end) },
           { label: 'Накоплено (Сейчас)', value: fmt(summary.initial_capital) },
           { label: 'Ежем. пополнение', value: fmt(summary.monthly_replenishment) },
-          { label: 'Размер резерва', value: (summary.target_months || 0) + ' мес' }, // Specific case: Size of reserve
+          { label: 'Размер резерва', value: (summary.target_months || 0) + ' мес' },
         ];
         break;
-      case 8: // RENT
+      case 8:
         displaySlots = [
           { label: 'Ежем. доход', value: fmt(summary.projected_monthly_income) },
           { label: 'Капитал', value: fmt(summary.initial_capital) },
         ];
         break;
       default:
-        // Fallback for unknown types
         displaySlots = [
           { label: 'Цель', value: fmt(summary.target_amount || summary.target_amount_initial) },
           { label: 'Срок', value: fmtDate(summary.target_months) },
         ];
     }
 
-    // Legacy/Edit fields population (best effort)
-    const cost = details.target_capital_required !== undefined
-      ? details.target_capital_required
-      : (details.target_amount || summary.target_amount || summary.target_amount_initial || 0);
-
-    // Determine name: use goal_name from API, or fallback to default title from Gallery items based on typeId
     const defaultTitle = GOAL_GALLERY_ITEMS.find(i => i.typeId === typeId)?.title;
-
-    // Verify goal name from client input list matching by ID
-    let mappedGoal = client?.goals?.find((g: any) => g.id === goalResult.goal_id);
-
-    // Fallback: match by index if ID based lookup failed
-    if (!mappedGoal && client?.goals && client.goals[_index]) {
-      mappedGoal = client.goals[_index];
-    }
-
-    // Fallback: match by closest properties if index failed (e.g. filtered list)
-    if (!mappedGoal && client?.goals) {
-      // Try finding a goal with same type and similar target amount
-      mappedGoal = client.goals.find((g: any) => g.goal_type_id === typeId &&
-        Math.abs((g.target_amount || 0) - (summary.target_amount_initial || 0)) < 1000
-      );
-    }
-
-    const mappedName = mappedGoal?.name;
-    // Prio: 1. Name from Client (User input) 2. Name from Calculation Result (goal_name is now first in API) 3. Default Title by Type 4. Fallback
-    const displayName = mappedName || goalResult.goal_name || goalResult.name || defaultTitle || 'Цель';
+    let mappedGoal = client?.goals?.find((g: any) => g.id === goalResult.goal_id) || client?.goals?.[index];
+    const displayName = mappedGoal?.name || goalResult.goal_name || goalResult.name || defaultTitle || 'Цель';
 
     return {
       id: goalResult?.goal_id || 0,
       name: displayName,
-      targetAmount: cost,
+      targetAmount: details.target_capital_required ?? details.target_amount ?? summary.target_amount ?? summary.target_amount_initial ?? 0,
       initialCapital: summary?.initial_capital || 0,
-      monthlyPayment: summary?.monthly_replenishment !== undefined ? summary.monthly_replenishment : (summary.monthly_payment || 0),
+      monthlyPayment: summary?.monthly_replenishment ?? summary.monthly_payment ?? 0,
       termMonths: details?.term_months || summary?.term_months || 0,
       goalType: goalResult?.goal_type,
       goalTypeId: typeId,
-
-      displaySlots, // <--- THE KEY
-
+      displaySlots,
       risks: details?.risks || [],
       assets_allocation: summary?.assets_allocation || details?.portfolio?.instruments || [],
       portfolio_structure: goalResult?.portfolio_structure || summary?.portfolio_structure,
@@ -344,19 +279,14 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
     };
   });
 
-  // Sync editingGoal with calculationData when it updates
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingGoal) {
       const updatedGoal = goalCards.find(g => g.id === editingGoal.id);
       if (updatedGoal) {
-        console.log('Syncing editingGoal with new calculationData', updatedGoal);
         setEditingGoal(updatedGoal);
-
-        // Update snapshot to the newest stable state from backend
         const input = updatedGoal.originalData?.goal_input || {};
         const summary = updatedGoal.originalData?.summary || {};
         const details = updatedGoal.originalData?.details || {};
-
         const newSnapshot: EditFormState = {
           name: updatedGoal.name,
           target_amount: input.target_amount ?? details.target_amount ?? summary.target_amount ?? updatedGoal.targetAmount ?? 0,
@@ -369,672 +299,223 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
           risk_profile: input.risk_profile ?? details.risk_profile ?? summary.risk_profile ?? 'BALANCED',
           inflation_rate: input.inflation_rate ?? details.inflation_rate ?? updatedGoal.originalData?.inflation_rate ?? 0,
         };
-
         setSnapshotForm(newSnapshot);
-
-        // Sync calculated fields (like monthly_replenishment) INTO the form
-        // so if the user hasn't touched them, they stay updated with server results
-        setEditForm(prev => ({
-          ...prev,
-          monthly_replenishment: newSnapshot.monthly_replenishment
-        }));
+        setEditForm(prev => ({ ...prev, monthly_replenishment: newSnapshot.monthly_replenishment }));
       }
     }
   }, [calculationData]);
 
-  // Debounced Auto-Recalculate
-  React.useEffect(() => {
+  useEffect(() => {
     if (!editingGoal || !onRecalculate || isCalculating) return;
-
-    // Check if there are changes before setting timer
     let hasChanges = false;
     Object.keys(editForm).forEach(key => {
-      const val = (editForm as any)[key];
-      const snapVal = snapshotForm ? (snapshotForm as any)[key] : undefined;
-
-      // Handle null/undefined values by using default 0/"" for comparison
-      const normalizedVal = val ?? (typeof snapVal === 'number' ? 0 : '');
-      const normalizedSnap = snapVal ?? (typeof val === 'number' ? 0 : '');
-
-      // Increased threshold to avoid jitter in financial calculations (e.g. 11920.37 vs 11920)
-      const isChanged = typeof normalizedVal === 'number' && typeof normalizedSnap === 'number'
-        ? Math.abs(normalizedVal - normalizedSnap) > 1
-        : String(normalizedVal) !== String(normalizedSnap);
-
-      if (isChanged) {
-        console.warn(`[AutoRecalc] DEVIATION in field "${key}": `, { from: snapVal, to: val });
-        hasChanges = true;
-      }
+      const val = (editForm as any)[key] ?? (typeof (snapshotForm as any)?.[key] === 'number' ? 0 : '');
+      const snapVal = (snapshotForm as any)?.[key] ?? (typeof (editForm as any)?.[key] === 'number' ? 0 : '');
+      const isChanged = typeof val === 'number' && typeof snapVal === 'number'
+        ? Math.abs(val - snapVal) > 1
+        : String(val) !== String(snapVal);
+      if (isChanged) hasChanges = true;
     });
-
     if (!hasChanges) return;
-
-    const timer = setTimeout(() => {
-      console.log('Debounce completed! Auto-recalculating field changes...');
-      onSubmitEdit();
-    }, 1000);
-
+    const timer = setTimeout(() => onSubmitEdit(), 1000);
     return () => clearTimeout(timer);
-  }, [editForm, snapshotForm, onRecalculate, isCalculating]);
-
-
-
-
+  }, [editForm, snapshotForm, onRecalculate, isCalculating, onSubmitEdit]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB', fontFamily: "'Inter', sans-serif" }}>
-      {/* Контент страницы */}
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px' }}>
 
-
-      {/* Основной контент */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', maxWidth: '1440px', margin: '0 auto', padding: '20px', gap: '24px' }}>
-
-        {/* Левая боковая панель */}
-        <aside style={{ width: '100%', maxWidth: '320px', flexShrink: 0 }}>
-          <div style={{
-            background: '#FFFFFF',
-            borderRadius: '24px',
-            padding: '24px',
-            boxShadow: '0px 4px 6px -1px rgba(0, 0, 0, 0.05), 0px 2px 4px -1px rgba(0, 0, 0, 0.03)'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ flexShrink: 0 }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    background: '#E5E7EB',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }}>
-                    <img src={avatarImage} alt="AI" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                </div>
-                <div style={{
-                  background: '#F3F4F6',
-                  borderRadius: '16px',
-                  borderTopLeftRadius: '4px',
-                  padding: '16px',
-                  fontSize: '14px',
-                  lineHeight: '1.5',
-                  color: '#1F2937'
-                }}>
-                  Я подготовила для вас финансовый план с учетом ваших целей и ресурсов. Может быть мы что-то поменяем?
-                </div>
-              </div>
-
-              {/* Chat Input */}
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Напишите ваш вопрос..."
-                  style={{
-                    width: '100%',
-                    padding: '12px 48px 12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #E5E7EB',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                    background: '#FAFAFA'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#C2185B'}
-                  onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
-                />
-                <button
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#C2185B',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Send size={18} />
-                </button>
+        {/* Блок ИИ - Full Width */}
+        <section style={{
+          width: '100%',
+          marginBottom: '40px',
+          background: '#FFFFFF',
+          borderRadius: '32px',
+          padding: '32px',
+          boxShadow: 'var(--shadow-premium)',
+          border: '1px solid rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flexShrink: 0 }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                background: '#fff',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                border: '2px solid var(--primary)'
+              }}>
+                <img src={avatarImage} alt="Victoria" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '12px', fontWeight: '500', color: '#9CA3AF', marginBottom: '12px', textTransform: 'uppercase' }}>
-                Часто задаваемые вопросы
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <div style={{ fontSize: '18px', lineHeight: '1.6', color: '#1e293b', marginBottom: '24px', fontWeight: 500 }}>
+                {aiMessage}
+                {isAiTyping && <span className="streaming-cursor">|</span>}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
                 {['Что такое ПДС?', 'Какие гарантии?', 'Какие риски?', 'Как получить вычет?', 'С чего начать?'].map((q, i) => (
                   <button
                     key={i}
                     style={{
-                      padding: '8px 16px',
-                      background: '#F3F4F6',
-                      border: 'none',
+                      padding: '10px 20px',
+                      background: 'rgba(255, 199, 80, 0.1)',
+                      border: '1px solid rgba(255, 199, 80, 0.2)',
                       borderRadius: '100px',
-                      color: '#4B5563',
-                      fontSize: '12px',
-                      fontWeight: '500',
+                      color: '#1e293b',
+                      fontSize: '13px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      flex: i === 4 ? '1 1 100%' : '1 1 auto',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--primary)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 199, 80, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     {q}
                   </button>
                 ))}
               </div>
-            </div>
 
-            <button
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#C2185B',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '100px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-            >
-              Задать вопрос
-            </button>
-          </div>
-        </aside>
-
-        {/* Сетка целей */}
-        <main style={{ flex: 1 }}>
-
-          {/* Portfolio Distribution Charts */}
-          <PortfolioDistribution
-            assetsAllocation={assetsAllocation}
-            cashFlowAllocation={cashFlowAllocation}
-          />
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
-            gap: '24px',
-            marginBottom: '40px',
-          }}>
-            {/* Карточки целей */}
-            {goalCards.map((goal: GoalResult, _index: number) => {
-
-              // Get image for the goal
-              // We need goal_type_id. Let's try to get it from the result if available, or fallback.
-              // The API response for calculation might strictly not have goal_type_id at the top level of goal result?
-              // Let's assume goalResult has it or we infer it.
-              // Taking a safe bet: if goalType is a string name, we might not match IDs well.
-              // But getGoalImage can also take a Name.
-
-              const imageSrc = getGoalImage(goal.name, goal.goalTypeId || 0);
-
-              return (
-                <div
-                  key={goal.id}
-                  onClick={() => handleEditGoal(goal)}
+              <div style={{ position: 'relative', maxWidth: '600px' }}>
+                <input
+                  type="text"
+                  placeholder="Задайте свой вопрос Виктории..."
                   style={{
-                    backgroundColor: '#1a1a1a', // Fallback
-                    background: `linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 100%), url(${imageSrc}) center/cover no-repeat`,
-                    borderRadius: '24px',
-                    padding: '32px',
-                    color: '#fff',
-                    position: 'relative',
-                    minHeight: '260px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s'
+                    width: '100%',
+                    padding: '16px 60px 16px 24px',
+                    borderRadius: '20px',
+                    border: '1px solid #e2e8f0',
+                    fontSize: '15px',
+                    outline: 'none',
+                    background: '#f8fafc',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-                >
-                  <div style={{ position: 'relative', zIndex: 1, flex: 1 }}>
-                    <h3 style={{ fontSize: '24px', fontWeight: '800', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>{goal.name}</h3>
-                    {onDeleteGoal && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteGoal(goal.id);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          top: '0',
-                          right: '0',
-                          background: 'rgba(255,255,255,0.2)',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          transition: 'background 0.2s',
-                          zIndex: 10
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,0,0,0.4)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+                />
+                <button style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'var(--primary)',
+                  border: 'none',
+                  borderRadius: '14px',
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(255,199,80,0.3)'
+                }}>
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', position: 'relative', zIndex: 1 }}>
-                    {goal.displaySlots.map((slot: GoalCardSlot, idx: number) => (
-                      <div key={idx}>
-                        <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>{slot.label}</div>
-                        <div style={{ fontSize: '18px', fontWeight: '700' }}>{slot.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
+        <main>
+          <PortfolioDistribution assetsAllocation={assetsAllocation} cashFlowAllocation={cashFlowAllocation} />
 
-            })}
-
-            {/* Карточка Налоговое планирование. Show if data exists OR if there are goals (placeholder mode) */}
-            {(taxBenefitsSummary || taxPlanningLegacy || calculatedGoals.length > 0) && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+            {goalCards.map((goal) => (
               <div
+                key={goal.id}
                 style={{
-                  background: 'linear-gradient(108.52deg, #C2185B 0%, #E91E63 100%)',
+                  background: `linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.8) 100%), url(${getGoalImage(goal.name, goal.goalTypeId || 0)}) center/cover no-repeat`,
                   borderRadius: '24px',
-                  padding: '24px',
+                  padding: '32px',
                   color: '#fff',
                   position: 'relative',
-                  minHeight: '260px',
+                  minHeight: '280px',
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: '0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  justifyContent: 'space-between',
+                  boxShadow: ' shadow-premium ',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  overflow: 'hidden'
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '24px', fontWeight: '700', margin: 0, lineHeight: '1.2' }}>Налоговое<br />планирование</h3>
-                  <button
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.2)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: '#fff',
-                      flexShrink: 0
-                    }}
-                  >
-                    <X size={16} />
+                <div>
+                  <h3 style={{ fontSize: '28px', fontWeight: '900', margin: '0 0 12px 0', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>{goal.name}</h3>
+                </div>
+
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.2)'
+                }}>
+                  {goal.displaySlots.map((slot, idx) => (
+                    <div key={idx} onClick={() => openFieldChat(goal, slot)} style={{ cursor: 'pointer', padding: '8px', borderRadius: '12px', transition: 'background 0.2s' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                      <div style={{ fontSize: '11px', opacity: 0.7, textTransform: 'uppercase', marginBottom: '4px', fontWeight: 600 }}>{slot.label}</div>
+                      <div style={{ fontSize: '16px', fontWeight: '800' }}>{slot.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {onDeleteGoal && (
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteGoal(goal.id); }} style={{
+                    position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.15)',
+                    border: '1px solid rgba(255,255,255,0.2)', borderRadius: '14px', width: '36px', height: '36px', color: '#fff', cursor: 'pointer',
+                    backdropFilter: 'blur(4px)'
+                  }}>
+                    <Trash2 size={18} />
                   </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                  {(taxBenefitsSummary) ? (
-                    // New Tax Summary Layout
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '14px', opacity: 0.9 }}>Вычеты в 2026:</div>
-                        <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxDeduction2026)}</div>
-                      </div>
-                      {taxCofinancing2026 > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: '14px', opacity: 0.9 }}>Софинансирование в 2026:</div>
-                          <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxCofinancing2026)}</div>
-                        </div>
-                      )}
-
-                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.2)', margin: '8px 0' }}></div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '14px', opacity: 0.9 }}>Итого вычетов:</div>
-                        <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxTotalDeduction)}</div>
-                      </div>
-                      {taxTotalCofinancing > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: '14px', opacity: 0.9 }}>Всего софинансирования:</div>
-                          <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxTotalCofinancing)}</div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    // Legacy Layout
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '14px', opacity: 0.9 }}>Всего вычетов:</div>
-                        <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxTotalDeduction)}</div>
-                      </div>
-                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.2)' }}></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ fontSize: '14px', opacity: 0.9, maxWidth: '150px' }}>Всего выплат в месяц за детей</div>
-                        <div style={{ fontSize: '18px', fontWeight: '700' }}>{formatCurrency(taxMonthlyPayment)}</div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                )}
               </div>
-            )}
+            ))}
 
-            {/* Placeholder для добавления цели */}
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              style={{
-                borderRadius: '24px',
-                border: '2px dashed #E5E7EB',
-                background: '#F9FAFB',
-                minHeight: '260px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#C2185B';
-                e.currentTarget.style.background = '#FFF0F5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#E5E7EB';
-                e.currentTarget.style.background = '#F9FAFB';
-              }}
-            >
+            <button onClick={() => setIsAddModalOpen(true)} style={{
+              borderRadius: '24px', border: '2px dashed #E5E7EB', background: '#F9FAFB', minHeight: '280px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s'
+            }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#fff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.background = '#F9FAFB'; }}>
               <Plus size={32} color="#C2185B" />
               <span style={{ color: '#C2185B', fontSize: '16px', fontWeight: '500' }}>+ Добавить цель</span>
             </button>
           </div>
 
           <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={onGoToReport}
-              style={{
-                background: '#C2185B',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '100px',
-                padding: '16px 48px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0px 4px 6px -1px rgba(194, 24, 91, 0.4)',
-                transition: 'transform 0.1s',
-                maxWidth: '300px',
-                width: '100%'
-              }}
-            >
+            <button onClick={onGoToReport} style={{
+              background: '#C2185B', color: '#fff', border: 'none', borderRadius: '100px', padding: '16px 48px',
+              fontSize: '16px', fontWeight: '600', cursor: 'pointer', maxWidth: '300px', width: '100%', boxShadow: '0 4px 12px rgba(194,24,91,0.3)'
+            }}>
               Перейти в отчет
             </button>
           </div>
         </main>
       </div>
 
-      <AddGoalModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAdd={(goal) => {
-          if (onAddGoal) onAddGoal(goal);
-          setIsAddModalOpen(false);
+      <AddGoalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={(g) => { if (onAddGoal) onAddGoal(g); setIsAddModalOpen(false); }} />
+
+      <VictoriaChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        goal={editingGoal}
+        fieldName={chatField?.name || ''}
+        fieldLabel={chatField?.label || ''}
+        currentValue={chatField?.value}
+        onUpdate={(val) => {
+          if (editingGoal && chatField) {
+            setEditForm(prev => ({ ...prev, [chatField.name]: val }));
+            onSubmitEdit();
+          }
         }}
       />
-
-      {/* Editing Modal */}
-      {editingGoal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(12px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '20px'
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: '32px',
-            width: '100%',
-            maxWidth: '900px',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-            color: '#1a1a1a',
-            overflow: 'hidden'
-          }}>
-            {/* Modal Header with Background Image */}
-            <div style={{
-              position: 'relative',
-              background: `linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 100%), url(${getGoalImage(editingGoal.name, editingGoal.goalTypeId || 0)}) center/cover no-repeat`,
-              height: '240px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-              padding: '40px',
-              color: '#fff'
-            }}>
-              <button
-                onClick={() => setEditingGoal(null)}
-                style={{
-                  position: 'absolute',
-                  top: '24px',
-                  right: '24px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  color: '#fff',
-                  backdropFilter: 'blur(10px)',
-                  zIndex: 2
-                }}
-              >
-                <X size={24} />
-              </button>
-
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#fff',
-                    fontSize: '42px',
-                    fontWeight: '800',
-                    margin: 0,
-                    padding: 0,
-                    width: '100%',
-                    outline: 'none',
-                    textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                  }}
-                  autoFocus={false}
-                />
-                <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '16px', fontWeight: '500' }}>
-                  Настройте параметры цели для пересчета плана
-                </p>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px' }}>
-              {/* Left Column: Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-
-                {/* Goal Selection Specific Form Component */}
-                {(() => {
-                  const props: BaseFormProps = { editForm, setEditForm, formatCurrency };
-                  const typeId = editingGoal.goalTypeId || 0;
-
-                  switch (typeId) {
-                    case 1: return <PensionForm {...props} />;
-                    case 2: return <PassiveIncomeForm {...props} />;
-                    case 3: return <InvestmentForm {...props} />;
-                    case 4: return <PurchaseForm {...props} />;
-                    case 5: return <LifeInsuranceForm {...props} />;
-                    case 7: return <FinReserveForm {...props} />;
-                    case 8: return <RentForm {...props} />;
-                    default: return (
-                      <div style={{ color: '#666', fontStyle: 'italic' }}>
-                        Форма редактирования для данного типа цели будет добавлена в ближайшее время.
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
-
-              {/* Right Column: Visualization & Risks */}
-              <div>
-                {/* Result Summary Card (Added) */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #111827 0%, #374151 100%)',
-                  borderRadius: '24px',
-                  padding: '24px',
-                  color: '#fff',
-                  marginBottom: '32px',
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)'
-                }}>
-                  <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Текущий расчет
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <div style={{ fontSize: '32px', fontWeight: '800' }}>{formatCurrency(editingGoal.monthlyPayment)}</div>
-                    <div style={{ fontSize: '14px', opacity: 0.9 }}>/ мес</div>
-                  </div>
-                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 0' }}></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                    <span style={{ opacity: 0.7 }}>Стартовый капитал</span>
-                    <span style={{ fontWeight: '600' }}>{formatCurrency(editForm.initial_capital ?? editingGoal.initialCapital)}</span>
-                  </div>
-                  {editingGoal.yieldPercent !== undefined && editingGoal.yieldPercent > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                      <span style={{ opacity: 0.7 }}>Ожидаемая доходность</span>
-                      <span style={{ fontWeight: '600', color: '#34D399' }}>{editingGoal.yieldPercent}% год.</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Goal Portfolio Distribution (New Detailed View) */}
-                {(editingGoal.initialInstruments?.length || 0) > 0 || (editingGoal.monthlyInstruments?.length || 0) > 0 ? (
-                  <div style={{ marginBottom: '32px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '4px', height: '18px', background: 'var(--primary)', borderRadius: '2px' }}></div>
-                      Предлагаемый портфель
-                    </h3>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      {/* Initial Portfolio */}
-                      {(editingGoal.initialInstruments?.length || 0) > 0 && (
-                        <div style={{ background: '#F9FAFB', borderRadius: '20px', padding: '20px', border: '1px solid #F3F4F6' }}>
-                          <div style={{ fontSize: '12px', fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-                            Стартовый портфель
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {editingGoal.initialInstruments?.map((item: any, idx: number) => (
-                              <div key={idx}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{item.name}</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827' }}>{item.share}%</div>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                  <div style={{ fontSize: '12px', color: '#6B7280' }}>{formatCurrency(item.amount)}</div>
-                                  {item.yield && <div style={{ fontSize: '11px', color: '#059669' }}>+{item.yield}%</div>}
-                                </div>
-                                <div style={{ width: '100%', height: '4px', background: '#E5E7EB', borderRadius: '2px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${item.share}% `, height: '100%', background: 'var(--primary)', borderRadius: '2px' }}></div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Monthly Portfolio */}
-                      {(editingGoal.monthlyInstruments?.length || 0) > 0 && (
-                        <div style={{ background: '#F9FAFB', borderRadius: '20px', padding: '20px', border: '1px solid #F3F4F6' }}>
-                          <div style={{ fontSize: '12px', fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-                            Ежемесячный портфель
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {editingGoal.monthlyInstruments?.map((item: any, idx: number) => (
-                              <div key={idx}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{item.name}</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827' }}>{item.share}%</div>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                  <div style={{ fontSize: '12px', color: '#6B7280' }}>{formatCurrency(item.amount)} / мес</div>
-                                  {item.yield && <div style={{ fontSize: '11px', color: '#059669' }}>+{item.yield}%</div>}
-                                </div>
-                                <div style={{ width: '100%', height: '4px', background: '#E5E7EB', borderRadius: '2px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${item.share}% `, height: '100%', background: 'var(--secondary)', borderRadius: '2px' }}></div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : editingGoal.goalTypeId !== 5 && (
-                  <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: '14px', textAlign: 'center', padding: '40px', background: '#F9FAFB', borderRadius: '32px' }}>
-                    <div style={{ opacity: 0.5 }}>
-                      <Plus size={48} style={{ marginBottom: '16px', margin: '0 auto' }} />
-                      <p>Распределение портфеля будет<br />доступно после расчета</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{ padding: '24px 32px', borderTop: '1px solid #eee', background: '#F9FAFB', display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-              <button
-                onClick={() => setEditingGoal(null)}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '100px',
-                  border: '1px solid #ddd',
-                  background: '#fff',
-                  color: '#666',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={onSubmitEdit}
-                style={{
-                  padding: '12px 48px',
-                  borderRadius: '100px',
-                  border: 'none',
-                  background: 'var(--primary)',
-                  color: '#fff',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(194, 24, 91, 0.3)'
-                }}
-              >
-                Сохранение...
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

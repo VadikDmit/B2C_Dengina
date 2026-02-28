@@ -194,10 +194,27 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                             key="success"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            style={{ textAlign: 'center', padding: '20px' }}
+                            style={{ textAlign: 'center', padding: '40px 20px' }}
                         >
-                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                            <p style={{ color: 'var(--text-muted)' }}>Перенаправляем в личный кабинет...</p>
+                            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                                <div className="premium-loader" style={{
+                                    width: '60px',
+                                    height: '60px',
+                                    border: '3px solid rgba(255, 199, 80, 0.1)',
+                                    borderTop: '3px solid var(--primary)',
+                                    borderRadius: '50%',
+                                    animation: 'spin 1s linear infinite'
+                                }} />
+                            </div>
+                            <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: '#1e293b' }}>Почти готово!</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>Виктория уже готовит ваше личное пространство...</p>
+
+                            <style>{`
+                                @keyframes spin {
+                                    0% { transform: rotate(0deg); }
+                                    100% { transform: rotate(360deg); }
+                                }
+                            `}</style>
                         </motion.div>
                     )}
                 </AnimatePresence>

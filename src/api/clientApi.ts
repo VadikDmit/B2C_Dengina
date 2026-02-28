@@ -72,6 +72,12 @@ export const clientApi = {
         return response.data;
     },
 
+    // Delete a goal from plan
+    deleteGoal: async (goalId: number): Promise<any> => {
+        const response = await api.delete(`/my/plan/goals/${goalId}`);
+        return response.data;
+    },
+
     // Get report data
     getReport: async (clientId: number): Promise<any> => {
         const response = await api.get(`/my/reports/${clientId}`);
