@@ -27,8 +27,7 @@ const VictoriaChatModal: React.FC<VictoriaChatModalProps> = ({
     goal,
     fieldName,
     fieldLabel,
-    currentValue,
-    onUpdate
+    currentValue
 }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  X,
   Send,
   Plus,
   Trash2,
@@ -119,29 +118,6 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
     setIsChatModalOpen(true);
   };
 
-  const handleEditGoal = (goal: GoalResult) => {
-    setEditingGoal(goal);
-    const input = goal.originalData?.goal_input || {};
-    const summary = goal.originalData?.summary || {};
-    const details = goal.originalData?.details || {};
-
-    const initialForm: EditFormState = {
-      name: goal.name,
-      target_amount: input.target_amount ?? details.target_amount ?? summary.target_amount ?? goal.targetAmount ?? 0,
-      desired_monthly_income: input.desired_monthly_income ?? details.target_amount ?? summary.target_amount ?? 0,
-      term_months: input.term_months ?? details.term_months ?? summary.target_months ?? goal.termMonths ?? 0,
-      initial_capital: input.initial_capital ?? summary.initial_capital ?? goal.initialCapital ?? 0,
-      monthly_replenishment: input.monthly_replenishment ?? summary.monthly_replenishment ?? 0,
-      ops_capital: input.ops_capital ?? details.ops_capital ?? goal.originalData?.ops_capital ?? 0,
-      ipk_current: input.ipk_current ?? details.state_pension?.ipk_current ?? details.ipk_current ?? goal.originalData?.ipk_current ?? 0,
-      risk_profile: input.risk_profile ?? details.risk_profile ?? summary.risk_profile ?? 'BALANCED',
-      inflation_rate: input.inflation_rate ?? details.inflation_rate ?? goal.originalData?.inflation_rate ?? 0,
-    };
-
-    setEditForm(initialForm);
-    setSnapshotForm(initialForm);
-  };
-
   const onSubmitEdit = useCallback(() => {
     if (!onRecalculate || !editingGoal) return;
     const goalPayload: any = { goal_id: editingGoal.id };
@@ -180,13 +156,6 @@ const ResultPageDesign: React.FC<ResultPageDesignProps> = ({
     return item;
   });
 
-  const taxBenefitsSummary = calcRoot?.summary?.tax_benefits_summary;
-  const taxPlanningLegacy = calcRoot.tax_planning;
-  const taxDeduction2026 = taxBenefitsSummary?.totals?.deduction_2026 || 0;
-  const taxCofinancing2026 = taxBenefitsSummary?.totals?.cofinancing_2026 || 0;
-  const taxTotalDeduction = taxBenefitsSummary?.totals?.total_deductions || taxPlanningLegacy?.total_deductions || 0;
-  const taxTotalCofinancing = taxBenefitsSummary?.totals?.total_cofinancing || 0;
-  const taxMonthlyPayment = taxPlanningLegacy?.monthly_payments || 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value) + '₽';
