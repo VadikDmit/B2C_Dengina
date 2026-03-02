@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clientApi } from '../api/clientApi';
+import { GOAL_GALLERY_ITEMS } from '../utils/GoalImages';
 
 interface LoginPageProps {
     onLoginSuccess: () => void;
     onSwitchToRegister: () => void;
 }
+
+const LOGIN_BACKGROUND_GOALS = [
+    ...GOAL_GALLERY_ITEMS,
+    ...GOAL_GALLERY_ITEMS.slice(0, 6)
+];
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onSwitchToRegister }) => {
     const [email, setEmail] = useState('');
@@ -37,18 +43,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onSwitchToRegiste
     };
 
     return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh',
-            padding: '20px'
-        }}>
+        <div className="login-page">
+            <div className="login-page__goals-bg" aria-hidden="true">
+                {LOGIN_BACKGROUND_GOALS.map((goal, index) => (
+                    <div className="login-page__goal-tile" key={`${goal.id}-${index}`}>
+                        <img
+                            src={goal.image}
+                            alt=""
+                            className="login-page__goal-image"
+                            loading="lazy"
+                        />
+                    </div>
+                ))}
+            </div>
+            <div className="login-page__overlay" aria-hidden="true" />
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="premium-card"
+                className="premium-card login-page__card"
                 style={{ width: '100%', maxWidth: '400px' }}
             >
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
