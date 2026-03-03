@@ -41,7 +41,8 @@ function App() {
             if (err.response?.status === 401) {
                 localStorage.removeItem('token');
                 setCurrentPage('landing');
-            } else if (err.response?.status === 404) {
+            } else {
+                // 404 (нет плана) или любая другая ошибка — ведём в онбординг, чтобы пользователь не застревал
                 setClientData(null);
                 setCurrentPage('cjm');
             }

@@ -40,13 +40,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                 password
             });
 
-            if (response.token) {
-                localStorage.setItem('token', response.token);
+            const token = response.token ?? response.access_token;
+            if (token) {
+                localStorage.setItem('token', token);
                 if (response.user) {
                     localStorage.setItem('user', JSON.stringify(response.user));
                 }
                 setStep('success');
                 setTimeout(() => onRegisterSuccess(), 1500);
+            } else {
+                setError('Сервер не вернул токен. Попробуйте войти.');
             }
         } catch (err: any) {
             const msg = err.response?.data?.message || err.response?.data?.error || 'Ошибка при регистрации';
