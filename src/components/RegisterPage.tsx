@@ -8,20 +8,55 @@ interface RegisterPageProps {
     onSwitchToLogin: () => void;
 }
 
-type Step = 'form' | 'success';
+type Step = 'form' | 'code' | 'success';
+
+const getErrorMessage = (err: any): string => {
+    const status = err.response?.status;
+    const data = err.response?.data;
+    let msg = data?.message ?? data?.error ?? data?.detail;
+    if (typeof msg === 'object') msg = msg?.message ?? msg?.msg ?? JSON.stringify(msg);
+    if (msg) return msg;
+    if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        return 'Нет связи с сервером. Проверьте интернет и настройки API.';
+    }
+    if (status === 404) return 'Сервис недоступен (404). Проверьте NEXT_PUBLIC_API_URL.';
+    if (status === 401) return 'Неверный ключ проекта или доступ запрещён.';
+    if (status) return `Ошибка сервера (${status}).`;
+    return err.message || 'Ошибка при регистрации';
+};
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitchToLogin }) => {
     const [step, setStep] = useState<Step>('form');
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
+    const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleRegister = async (e: React.FormEvent) => {
+    /** Шаг 1: запрос кода на email (B2C) */
+    const handleRequestCode = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            await clientApi.registerClient({ email, name });
+            setStep('code');
+        } catch (err: any) {
+            if (err.response?.status === 409) {
+                setError('Пользователь с таким email уже зарегистрирован');
+            } else {
+                setError(getErrorMessage(err));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    /** Шаг 2: ввод кода и пароля, создание аккаунта (B2C) */
+    const handleVerifyCode = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (password !== passwordConfirm) {
             setError('Пароли не совпадают');
             return;
@@ -30,34 +65,25 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
             setError('Пароль должен содержать минимум 6 символов');
             return;
         }
-
+        if (code.length !== 6) {
+            setError('Введите 6-значный код из письма');
+            return;
+        }
         setLoading(true);
         setError('');
         try {
-            const response = await clientApi.registerFast({
-                email,
-                name,
-                password
-            });
-
+            const response = await clientApi.verifyCode({ email, code, password });
             const token = response.token ?? response.access_token;
             if (token) {
                 localStorage.setItem('token', token);
-                if (response.user) {
-                    localStorage.setItem('user', JSON.stringify(response.user));
-                }
+                if (response.user) localStorage.setItem('user', JSON.stringify(response.user));
                 setStep('success');
                 setTimeout(() => onRegisterSuccess(), 1500);
             } else {
                 setError('Сервер не вернул токен. Попробуйте войти.');
             }
         } catch (err: any) {
-            const msg = err.response?.data?.message || err.response?.data?.error || 'Ошибка при регистрации';
-            if (err.response?.status === 409) {
-                setError('Пользователь с таким email уже зарегистрирован');
-            } else {
-                setError(msg);
-            }
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -94,10 +120,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                     </div>
                     <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
                         {step === 'form' && 'Регистрация'}
+                        {step === 'code' && 'Код из письма'}
                         {step === 'success' && 'Готово!'}
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
                         {step === 'form' && 'Создайте аккаунт для личного финансового плана'}
+                        {step === 'code' && `Мы отправили 6-значный код на ${email}`}
                         {step === 'success' && 'Аккаунт успешно создан'}
                     </p>
                 </div>
@@ -123,10 +151,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            onSubmit={handleRegister}
+                            onSubmit={handleRequestCode}
                         >
                             <div className="input-group">
-                                <label className="label">Ваше имя</label>
+                                <label className="label">Ваше имя *</label>
                                 <div style={{ position: 'relative' }}>
                                     <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                     <input
@@ -135,6 +163,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                                         onChange={(e) => setName(e.target.value)}
                                         style={{ paddingLeft: '40px' }}
                                         placeholder="Иван Иванов"
+                                        required
                                     />
                                 </div>
                             </div>
@@ -152,6 +181,34 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <button type="submit" className="btn-primary" style={{ marginTop: '10px' }} disabled={loading}>
+                                {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Отправка кода...</> : 'Получить код на email'}
+                            </button>
+                        </motion.form>
+                    )}
+
+                    {step === 'code' && (
+                        <motion.form
+                            key="code"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            onSubmit={handleVerifyCode}
+                        >
+                            <div className="input-group">
+                                <label className="label">Код из письма *</label>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="123456"
+                                    style={{ letterSpacing: '0.3em', textAlign: 'center' }}
+                                    required
+                                />
                             </div>
 
                             <div className="input-group">
@@ -187,8 +244,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess, onSwitch
                             </div>
 
                             <button type="submit" className="btn-primary" style={{ marginTop: '10px' }} disabled={loading}>
-                                {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Создание аккаунта...</> : 'Зарегистрироваться'}
+                                {loading ? <><Loader2 className="animate-spin" size={18} style={{ display: 'inline' }} /> Создание аккаунта...</> : 'Создать аккаунт'}
                             </button>
+                            <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
+                                <span style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: '600' }} onClick={() => { setStep('form'); setError(''); }}>← Другой email</span>
+                            </p>
                         </motion.form>
                     )}
 

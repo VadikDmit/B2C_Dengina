@@ -27,12 +27,33 @@ api.interceptors.request.use((config) => {
 
 export const clientApi = {
     // --- AUTH ---
+    /** Быстрая регистрация (если бэкенд поддерживает) */
     registerFast: async (payload: { email: string, password: string, name?: string }): Promise<any> => {
         const response = await api.post('/auth/register-fast', {
             email: payload.email,
             password: payload.password,
             name: payload.name,
             project_key: PROJECT_KEY,
+        });
+        return response.data;
+    },
+
+    /** Шаг 1: запрос кода на email (B2C по спецификации) */
+    registerClient: async (payload: { email: string; name: string }): Promise<any> => {
+        const response = await api.post('/auth/register-client', {
+            email: payload.email,
+            name: payload.name,
+            project_key: PROJECT_KEY,
+        });
+        return response.data;
+    },
+
+    /** Шаг 2: подтверждение кода и создание аккаунта (B2C) */
+    verifyCode: async (payload: { email: string; code: string; password: string }): Promise<any> => {
+        const response = await api.post('/auth/verify-code', {
+            email: payload.email,
+            code: payload.code,
+            password: payload.password,
         });
         return response.data;
     },
