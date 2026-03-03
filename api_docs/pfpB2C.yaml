@@ -41,7 +41,7 @@ paths:
                 project_key:
                   type: string
                   description: Public key of the project (e.g., pk_...)
-                  example: pk_9cfe10dcec21667bd5c557ea
+                  example: pk_example_project_key
       responses:
         '200':
           description: Verification code sent

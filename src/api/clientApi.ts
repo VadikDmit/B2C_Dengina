@@ -1,8 +1,9 @@
 import axios from 'axios';
 import type { Client } from '../types/client';
 
-const API_BASE_URL = import.meta.env.NEXT_PUBLIC_API_URL || 'https://pfpbackend-production.up.railway.app/api';
-const PROJECT_KEY = import.meta.env.NEXT_PUBLIC_PROJECT_KEY || 'pk_9cfe10dcec21667bd5c557ea';
+// Только из env (Vercel Variables / .env). В коде не храним URL и ключ.
+export const API_BASE_URL = import.meta.env.NEXT_PUBLIC_API_URL ?? '';
+export const PROJECT_KEY = import.meta.env.NEXT_PUBLIC_PROJECT_KEY ?? '';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -23,8 +24,6 @@ api.interceptors.request.use((config) => {
     }
     return config;
 });
-
-export { PROJECT_KEY };
 
 export const clientApi = {
     // --- AUTH ---

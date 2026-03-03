@@ -1,8 +1,5 @@
 import axios from 'axios';
-import { PROJECT_KEY } from './clientApi';
-
-// Use absolute path to match clientApi and avoid proxy buffering issues
-const API_BASE_URL = import.meta.env.NEXT_PUBLIC_API_URL || 'https://pfpbackend-production.up.railway.app/api';
+import { PROJECT_KEY, API_BASE_URL } from './clientApi';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

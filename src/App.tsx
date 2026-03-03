@@ -10,7 +10,7 @@ import MyPlansPage from './components/MyPlansPage'
 import PresentPage from './components/PresentPage'
 import PastPage from './components/PastPage'
 import type { Client } from './types/client'
-import { clientApi } from './api/clientApi'
+import { clientApi, API_BASE_URL } from './api/clientApi'
 
 type Page = 'loading' | 'landing' | 'login' | 'register' | 'past' | 'present' | 'future' | 'cjm' | 'result'
 
@@ -187,7 +187,7 @@ function App() {
         if (cid) {
             // Open report in new tab or navigate?
             // For now, let's assume there's a report page or we just provide the link
-            const url = `https://pfpbackend-production.up.railway.app/api/my/reports/${cid}`;
+            const url = `${API_BASE_URL}/my/reports/${cid}`;
             window.open(url, '_blank');
         } else {
             alert('Ошибка: ID клиента не найден.');
